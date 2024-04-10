@@ -10,7 +10,7 @@ import math
 import random
 from dateutil.relativedelta import relativedelta
 
-db = pd.read_pickle('us_stock_database.pkl')
+#db = pd.read_pickle('us_stock_database.pkl')
 
 st.set_page_config(layout="wide")
 
@@ -141,49 +141,6 @@ def get_rev_seg_data(tickernameI, periodI):
     rev_seg_dfL = rev_seg_dfL.dropna()
     return rev_seg_dfL
 
-def process_revenue_metrics_db(is_dfI, periodI,is_df_features_listI, years ):
-    is_dfL = is_dfI.iloc[-years:]
-    is_dfL.reset_index(inplace = True, drop = True)
-    is_df_features_listL = is_df_features_listI
-    rows = is_dfL.shape[0]-1
-    num_of_periods = is_dfL.shape[0]
-    
-    cagr_list = []
-    total_growth_list = []
-    percent_of_revenue_list = []
-    if periodI == 'annual':
-        period_name = 'FY'
-    if periodI == 'quarterly':
-        period_name = 'FQ'
-    for i in range(0,len(is_df_features_listL)):
-        #CAGR
-        
-        end = is_dfL.iloc[rows,i]
-        start = is_dfL.iloc[0,i]
-        if start == 0:
-            cagr = float("nan")
-            cagr_list.append(cagr)
-        else:
-            cagr = ((end/start)**(1/num_of_periods)-1).real
-            cagr_list.append(round(cagr*100,2))
-        #Total Growth
-        if start == 0:
-            total_growth = float("nan")
-            total_growth_list.append(total_growth)
-        else:
-            total_growth = round(((end-start)/start)*100,2)
-            total_growth_list.append(total_growth)
-        #Percent of Revenue
-        revenue = is_dfL.loc[rows,f"revenue({period_name})"]
-        percent_of_revenue = abs(round(((end/revenue)*100),2))
-        percent_of_revenue_list.append(percent_of_revenue)
-    id_df_summary_dfL = pd.DataFrame()
-    id_df_summary_dfL["Feature"] = is_df_features_listL
-    id_df_summary_dfL[f"{period_name} Compounded Growth Rate %"] = cagr_list
-    id_df_summary_dfL["Total Growth %"] = total_growth_list
-    id_df_summary_dfL["Percentage Of Revenue(Last)"] = percent_of_revenue_list
-    return id_df_summary_dfL, is_dfL
-
 def process_company_description(description_dfI):
     descriptionL = description_dfI.iloc[0,17]
     return descriptionL
@@ -236,7 +193,6 @@ def process_revenue_metrics_db(annual_stock_dataI, years, periodI):
     id_df_summary_dfL["Percentage Of Revenue(Last)"] = percent_of_revenue_list
     return id_df_summary_dfL, is_dfL
 
-
 def plot_stock_price(price_dfI, price_cagrI):
     price_dfL= price_dfI
     price_cagrL = price_cagrI
@@ -253,7 +209,7 @@ def plot_description(descriptionI):
 def plot_revenue_metrics_db(id_df_summary_dfI,periodI):
     id_df_summary_dfL = id_df_summary_dfI
     periodL = periodI
-    if periodL == 'annaul':
+    if periodL == 'annual':
         period_abbreviation = 'FY'
     else:
         period_abbreviation = 'FQ'
@@ -271,14 +227,8 @@ def plot_revenue_metrics_db(id_df_summary_dfI,periodI):
         
         return cagr_plot
 
-def plot_historic_multiples(price_dfI,start_dateI):
-    start_dateL = start_dateI
+def plot_historic_multiples(price_dfI):
     price_dfL = price_dfI
-    start_dateL = pd.to_datetime(start_dateI)
-    start_data_offset1 = (start_dateL + pd.Timedelta(days = 1)).date().strftime("%Y-%m-%d")
-    start_data_offset2 = (start_dateL + pd.Timedelta(days = 2)).date().strftime("%Y-%m-%d")
-    start_data_offset3 = (start_dateL + pd.Timedelta(days = 3)).date().strftime("%Y-%m-%d")
-    start_data_offset4 = (start_dateL + pd.Timedelta(days = 4)).date().strftime("%Y-%m-%d")
     with st.form("my_form2"):
         
         mutliple_to_plot = st.multiselect("Select Multiple to Plot",options = price_dfL.columns)
@@ -287,20 +237,13 @@ def plot_historic_multiples(price_dfI,start_dateI):
     if hist_mult_submit | st.session_state['historic_multiples'] == True:
         st.session_state['historic_multiples'] = True
         multiples_plot = go.Figure()
-        if (price_dfL[price_dfL["Date"] == start_dateL].count()[0] == 0): #no price for start date use first price
-            index = 0
-        else:
-            index = price_dfL.query(f"Date == '{start_dateL}' | Date == '{start_data_offset1}' | Date == '{start_data_offset2}'| Date == '{start_data_offset3}'| Date == '{start_data_offset4}' ").index[0]
-        alt_price_df = price_dfL.iloc[index:-1,]
-        alt_price_df = alt_price_df.dropna()
         for feature in mutliple_to_plot:
-            mean = alt_price_df[feature].mean()
-            std = alt_price_df[feature].std()
-            multiples_plot.add_trace(go.Line(x = alt_price_df["Date"],y =alt_price_df[feature], name = f"{feature}" ))
+            mean = price_dfL[feature].mean()
+            std = price_dfL[feature].std()
             multiples_plot.add_hline(y = mean, line_width = 3, line_dash = "dash", line_color = "green", name = "mean")
             multiples_plot.add_hline(y = mean + std, line_width = 1, line_dash = "dash", line_color = "orange", name = "+1 Std")
             multiples_plot.add_hline(y = mean - std, line_width = 1, line_dash = "dash", line_color = "orange", name = "-1 Std")
-
+            multiples_plot.add_trace(go.Scatter(x = price_dfL['Date'],y = price_dfL[feature]))
         return multiples_plot
 
 def process_historic_multiples_db(price_dfI, is_dfI, years, periodI ):
@@ -471,11 +414,12 @@ def Stock_Analysis():
     with st.expander("Description"):
         st.markdown(plot_description(s))
         st.markdown('---')
-        
+    
     with st.expander("Profitability Metrics"):
         st.plotly_chart(plot_revenue_metrics_db(annual_stock_data_summary, period))
+        
     with st.expander("Historic Multiples"):
-        st.plotly_chart(plot_historic_multiples(price_df,start_date ))
+        st.plotly_chart(plot_historic_multiples(price_df ))
     
     usa_stock_list = stock_list_pd.query("exchangeShortName == 'NYSE' | exchangeShortName == 'NASDAQ'")['symbol'].to_list()
     if tickername in usa_stock_list:
@@ -490,7 +434,7 @@ def Stock_Analysis():
 def topbar():
     last_day = (datetime.today() - pd.Timedelta(days=4)).strftime('%Y-%m-%d')
     now = datetime.today().strftime('%Y-%m-%d')
-    indicies_list = ["QQQ", "SPY"]
+    indicies_list = ["QQQ", "SPY", "DIA"]
     col1,col2,col3 = st.columns(3)
     column_list = [col1,col2,col3]
     column_chooser= 0
@@ -500,7 +444,7 @@ def topbar():
         column_list[column_chooser].metric(label = f"{indice}", value = int(indices[indice][-1]), delta=change)
         column_chooser = column_chooser + 1
 
-#topbar()
+topbar()
 
 selected = option_menu(
         menu_title = None,
