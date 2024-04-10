@@ -9,8 +9,12 @@ from streamlit_option_menu import option_menu
 import math
 import random
 from dateutil.relativedelta import relativedelta
+from st_aggrid import AgGrid
 
-#db = pd.read_pickle('us_stock_database.pkl')
+@st.cache_resource
+def load_database():
+    db = pd.read_pickle('sample_db.pkl')
+    return db
 
 st.set_page_config(layout="wide")
 
@@ -28,6 +32,7 @@ def expand_numbers(df, list_of_columns):
                 most_recent_value = df.loc[row, name_of_column]
     return df
 
+@st.cache_data
 def unpack_quarterly_data(ticker,databaseI ):
     raw_data = databaseI.query(f"Ticker == '{ticker}'")
     last_annual_date = raw_data.loc[0,'Date(FQ)']
@@ -60,6 +65,7 @@ def unpack_quarterly_data(ticker,databaseI ):
     annual_stock_data = annual_stock_data.reset_index(drop=True)
     return annual_stock_data, annual_stock_data_features_list
 
+@st.cache_data
 def unpack_annual_data(tickernameI, dbI):
     raw_data = dbI.query(f"Ticker == '{tickernameI}'")
     last_annual_date = raw_data.loc[0,'Date(FY)']
@@ -323,9 +329,9 @@ def plot_rev_seg_over_time(rev_seg_dfI):
     return rev_seg_over_time
 
 def screener():
-    screener_raw = pd.read_pickle('sample_db.pkl')
+    screener_raw = db
     screener_raw = screener_raw.drop(['Date(FQ)','Date(FY)'], axis = 1)
-    st.table(screener_raw)
+    AgGrid(screener_raw)
         
 def Calc_correlation_Matrix(Tickers, Start, End, Interval):
     portfolio_tickers = Tickers
@@ -388,7 +394,6 @@ def Stock_Analysis():
         st.session_state.freegraph1 = False
     if 'stock_submission' not in st.session_state:
         st.session_state.stock_submission = False
-    db = pd.read_pickle('sample_db.pkl')
     stock_list_pd = pd.read_pickle("StockList")
     st.markdown('# Enter Stock Name')
     
@@ -446,6 +451,7 @@ def topbar():
 
 topbar()
 
+db = load_database()
 selected = option_menu(
         menu_title = None,
         options = ['Screener','Stock Analysis(API)', 'Risk'],
