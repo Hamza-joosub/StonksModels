@@ -451,6 +451,8 @@ def topbar():
 
 topbar()
 
+
+ #MARK: Main
 db = load_database()
 selected = option_menu(
         menu_title = None,
