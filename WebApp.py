@@ -9,12 +9,9 @@ from streamlit_option_menu import option_menu
 import math
 import random
 from dateutil.relativedelta import relativedelta
-from st_aggrid import AgGrid
+import pyspark
+from pyspark.sql import SparkSession
 
-@st.cache_resource
-def load_database():
-    db = pd.read_pickle('sample_db.pkl')
-    return db
 
 st.set_page_config(layout="wide")
 
@@ -33,8 +30,11 @@ def expand_numbers(df, list_of_columns):
     return df
 
 @st.cache_data
-def unpack_quarterly_data(ticker,databaseI ):
-    raw_data = databaseI.query(f"Ticker == '{ticker}'")
+def unpack_quarterly_data(ticker,_databaseI ):
+    #raw_data = databaseI.query(f"Ticker == '{ticker}'")
+    result = _databaseI.sql(f"SELECT * FROM Stock_Financial_Statements WHERE Ticker = '{ticker}'")
+    raw_data = result.toPandas()
+    st.table(raw_data)
     last_annual_date = raw_data.loc[0,'Date(FQ)']
     raw_data = raw_data.drop(['Ticker', 'Date(FQ)', 'Date(FY)'], axis=1)
     raw_data = raw_data.transpose()
@@ -66,8 +66,10 @@ def unpack_quarterly_data(ticker,databaseI ):
     return annual_stock_data, annual_stock_data_features_list
 
 @st.cache_data
-def unpack_annual_data(tickernameI, dbI):
-    raw_data = dbI.query(f"Ticker == '{tickernameI}'")
+def unpack_annual_data(tickernameI, _databaseI):
+    #raw_data = dbI.query(f"Ticker == '{tickernameI}'")
+    result = _databaseI.sql(f"SELECT * FROM Stock_Financial_Statements WHERE Ticker = '{tickernameI}'")
+    raw_data = result.toPandas()
     last_annual_date = raw_data.loc[0,'Date(FY)']
     raw_data = raw_data.drop(['Ticker', 'Date(FQ)', 'Date(FY)'], axis=1)
     raw_data = raw_data.transpose()
@@ -199,6 +201,38 @@ def process_revenue_metrics_db(annual_stock_dataI, years, periodI):
     id_df_summary_dfL["Percentage Of Revenue(Last)"] = percent_of_revenue_list
     return id_df_summary_dfL, is_dfL
 
+def process_historic_multiples_db(price_dfI, is_dfI, years, periodI ):
+    price_dfL = price_dfI
+    is_dfL = is_dfI.iloc[-years:]
+    if periodI == 'annual':
+        period_name = "FY"
+    else:
+        period_name = "FQ"
+    Multiples_dfL = pd.DataFrame()
+    Multiples_dfL["Date"] = is_dfL["Date"]
+    Multiples_dfL["revenue"] = is_dfL[f"revenue({period_name})"]
+    Multiples_dfL["weightedAverageShsOutDil"] = is_dfL[f"weightedAverageShsOutDil({period_name})"]
+    Multiples_dfL["Basic RPS"] = Multiples_dfL["revenue"]/Multiples_dfL["weightedAverageShsOutDil"]
+    Multiples_dfL["epsdiluted"] = is_dfL[f'epsdiluted({period_name})']
+    price_dfL["EPS"] = float("nan")
+    price_dfL["RPS"] = float("nan")
+    for i in Multiples_dfL.iterrows():
+        rps = i[1][3]
+        eps = i[1][4]
+        date = i[1][0]
+        dateoffset1 = date + pd.Timedelta(days = 1)
+        dateoffset2 = date + pd.Timedelta(days = 2)
+        dateoffset3 = date + pd.Timedelta(days = 3)
+        dateoffset4 = date + pd.Timedelta(days = 4)
+        price_dfL.loc[price_dfL.query(f"Date == '{date}' | Date == '{dateoffset1}' | Date == '{dateoffset2}'| Date == '{dateoffset3}' | Date == '{dateoffset4}'").index,"EPS"] = eps
+        price_dfL.loc[price_dfL.query(f"Date == '{date}' | Date == '{dateoffset1}' | Date == '{dateoffset2}'| Date == '{dateoffset3}' | Date == '{dateoffset4}'").index,"RPS"] = rps
+    price_features_listL = price_dfL.columns.values.tolist()
+    price_dfL = expand_numbers(price_dfL, price_features_listL)
+    price_dfL["PE"] = price_dfL["Close"]/price_dfL["EPS"]
+    price_dfL["PS"] = price_dfL["Close"]/price_dfL["RPS"]
+    price_dfL["Volatility"] = price_dfL["Close"].pct_change()
+    return price_dfL, Multiples_dfL
+
 def plot_stock_price(price_dfI, price_cagrI):
     price_dfL= price_dfI
     price_cagrL = price_cagrI
@@ -236,7 +270,7 @@ def plot_revenue_metrics_db(id_df_summary_dfI,periodI):
 def plot_historic_multiples(price_dfI):
     price_dfL = price_dfI
     with st.form("my_form2"):
-        
+        mutliple_to_plot = ['PE']
         mutliple_to_plot = st.multiselect("Select Multiple to Plot",options = price_dfL.columns)
         hist_mult_submit = st.form_submit_button("Confirm")
             
@@ -251,38 +285,6 @@ def plot_historic_multiples(price_dfI):
             multiples_plot.add_hline(y = mean - std, line_width = 1, line_dash = "dash", line_color = "orange", name = "-1 Std")
             multiples_plot.add_trace(go.Scatter(x = price_dfL['Date'],y = price_dfL[feature]))
         return multiples_plot
-
-def process_historic_multiples_db(price_dfI, is_dfI, years, periodI ):
-    price_dfL = price_dfI
-    is_dfL = is_dfI.iloc[-years:]
-    if periodI == 'annual':
-        period_name = "FY"
-    else:
-        period_name = "FQ"
-    Multiples_dfL = pd.DataFrame()
-    Multiples_dfL["Date"] = is_dfL["Date"]
-    Multiples_dfL["revenue"] = is_dfL[f"revenue({period_name})"]
-    Multiples_dfL["weightedAverageShsOutDil"] = is_dfL[f"weightedAverageShsOutDil({period_name})"]
-    Multiples_dfL["Basic RPS"] = Multiples_dfL["revenue"]/Multiples_dfL["weightedAverageShsOutDil"]
-    Multiples_dfL["epsdiluted"] = is_dfL[f'epsdiluted({period_name})']
-    price_dfL["EPS"] = float("nan")
-    price_dfL["RPS"] = float("nan")
-    for i in Multiples_dfL.iterrows():
-        rps = i[1][3]
-        eps = i[1][4]
-        date = i[1][0]
-        dateoffset1 = date + pd.Timedelta(days = 1)
-        dateoffset2 = date + pd.Timedelta(days = 2)
-        dateoffset3 = date + pd.Timedelta(days = 3)
-        dateoffset4 = date + pd.Timedelta(days = 4)
-        price_dfL.loc[price_dfL.query(f"Date == '{date}' | Date == '{dateoffset1}' | Date == '{dateoffset2}'| Date == '{dateoffset3}' | Date == '{dateoffset4}'").index,"EPS"] = eps
-        price_dfL.loc[price_dfL.query(f"Date == '{date}' | Date == '{dateoffset1}' | Date == '{dateoffset2}'| Date == '{dateoffset3}' | Date == '{dateoffset4}'").index,"RPS"] = rps
-    price_features_listL = price_dfL.columns.values.tolist()
-    price_dfL = expand_numbers(price_dfL, price_features_listL)
-    price_dfL["PE"] = price_dfL["Close"]/price_dfL["EPS"]
-    price_dfL["PS"] = price_dfL["Close"]/price_dfL["RPS"]
-    price_dfL["Volatility"] = price_dfL["Close"].pct_change()
-    return price_dfL, Multiples_dfL
 
 def plot_free_graph1( is_dfI,is_df_features_listI, fp_dfI,fp_df_feature_listI,  cf_dfI,cf_df_feature_listI,years  ):
     is_df_features_listL = is_df_features_listI
@@ -327,12 +329,7 @@ def plot_rev_seg_over_time(rev_seg_dfI):
     for feature in rev_seg_features_listL[1:]:
         rev_seg_over_time.add_scatter(x = rev_seg_dfL['date'], y = rev_seg_dfL[feature],name =feature,   )
     return rev_seg_over_time
-
-def screener():
-    screener_raw = db
-    screener_raw = screener_raw.drop(['Date(FQ)','Date(FY)'], axis = 1)
-    AgGrid(screener_raw)
-        
+     
 def Calc_correlation_Matrix(Tickers, Start, End, Interval):
     portfolio_tickers = Tickers
     start = Start
@@ -394,17 +391,22 @@ def Stock_Analysis():
         st.session_state.freegraph1 = False
     if 'stock_submission' not in st.session_state:
         st.session_state.stock_submission = False
-    stock_list_pd = pd.read_pickle("StockList")
+    stock_list_pd = pd.read_pickle("StockList") #must Get from Database
     st.markdown('# Enter Stock Name')
+    
+    spark = SparkSession.builder.appName("Example").getOrCreate()
+    df = spark.read.parquet('USDBPARQ.parquet')
+    df.createOrReplaceTempView("Stock_Financial_Statements")
+    #result = spark.sql("SELECT * FROM table WHERE Ticker = 'AAPL'")
     
     tickername = st.selectbox("Input Stock Ticker", options=stock_list_pd["symbol"].to_list(), index = stock_list_pd["symbol"].to_list().index("AAPL") )
     period = st.selectbox("Select Period", options=["annual", "quarterly"])
     years_of_data = st.number_input("Number of Reports", step =1, min_value = 2, )
     
     if period == 'annual':
-        stock_data, annual_stock_data_features_list = unpack_annual_data(tickername, db)
+        stock_data, annual_stock_data_features_list = unpack_annual_data(tickername, spark)
     else:
-        stock_data, annual_stock_data_features_list = unpack_quarterly_data(tickername, db)
+        stock_data, annual_stock_data_features_list = unpack_quarterly_data(tickername, spark)
         
     price_df, price_cagr, start_date = get_stock_price_db(tickername, stock_data, years_of_data)
     description_df, description_features_list = get_description_data(tickername)
@@ -435,7 +437,15 @@ def Stock_Analysis():
             st.plotly_chart(plot_rev_segmentation_snapshot(rev_seg_df), use_container_width=True)
             st.plotly_chart(plot_rev_seg_over_time(rev_seg_df), use_container_width=True)
             st.markdown('---')
-            
+    with st.expander("income Statement"):   
+        st.table(((stock_data.transpose()).iloc[0:26]).iloc[:, ::-1])
+        
+    with st.expander("Balance Sheet"):   
+        st.table(((stock_data.transpose()).iloc[26:72]).iloc[:, ::-1])
+    
+    with st.expander("Cash Flow Statement"):   
+        st.table(((stock_data.transpose()).iloc[72:]).iloc[:, ::-1])
+        
 def topbar():
     last_day = (datetime.today() - pd.Timedelta(days=4)).strftime('%Y-%m-%d')
     now = datetime.today().strftime('%Y-%m-%d')
@@ -449,11 +459,10 @@ def topbar():
         column_list[column_chooser].metric(label = f"{indice}", value = int(indices[indice][-1]), delta=change)
         column_chooser = column_chooser + 1
 
+
+
+
 topbar()
-
-
- #MARK: Main
-db = load_database()
 selected = option_menu(
         menu_title = None,
         options = ['Screener','Stock Analysis(API)', 'Risk'],
@@ -461,7 +470,8 @@ selected = option_menu(
         icons = ['house', 'buildings', 'lock'])
 
 if selected == 'Screener':
-    screener()
+    #screener()
+    st.markdown("yo")
 if selected == 'Stock Analysis(API)':
     Stock_Analysis()
 if selected == 'Risk':

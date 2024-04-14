@@ -3,3 +3,4 @@ plotly_express
 pandas
 requests
 streamlit_option_menu
+pyspark
