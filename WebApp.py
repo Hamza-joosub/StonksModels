@@ -9,9 +9,12 @@ from streamlit_option_menu import option_menu
 import math
 import random
 from dateutil.relativedelta import relativedelta
-import pyspark
-from pyspark.sql import SparkSession
+import pyarrow.parquet as pq
+import pyarrow as pa
+from st_aggrid import GridOptionsBuilder, AgGrid, GridUpdateMode, DataReturnMode
 
+db = pq.read_table("NewUSDatabase.parquet")
+db_columns = (db.to_pandas()).columns.to_list()
 
 st.set_page_config(layout="wide")
 
@@ -32,8 +35,8 @@ def expand_numbers(df, list_of_columns):
 @st.cache_data
 def unpack_quarterly_data(ticker,_databaseI ):
     #raw_data = databaseI.query(f"Ticker == '{ticker}'")
-    result = _databaseI.sql(f"SELECT * FROM Stock_Financial_Statements WHERE Ticker = '{ticker}'")
-    raw_data = result.toPandas()
+    filtered_rows = _databaseI.filter(pa.compute.field("Ticker") == f"{ticker}")
+    raw_data = filtered_rows.to_pandas()
     st.table(raw_data)
     last_annual_date = raw_data.loc[0,'Date(FQ)']
     raw_data = raw_data.drop(['Ticker', 'Date(FQ)', 'Date(FY)'], axis=1)
@@ -67,9 +70,8 @@ def unpack_quarterly_data(ticker,_databaseI ):
 
 @st.cache_data
 def unpack_annual_data(tickernameI, _databaseI):
-    #raw_data = dbI.query(f"Ticker == '{tickernameI}'")
-    result = _databaseI.sql(f"SELECT * FROM Stock_Financial_Statements WHERE Ticker = '{tickernameI}'")
-    raw_data = result.toPandas()
+    filtered_rows = _databaseI.filter(pa.compute.field("Ticker") == f"{tickernameI}")
+    raw_data = filtered_rows.to_pandas()
     last_annual_date = raw_data.loc[0,'Date(FY)']
     raw_data = raw_data.drop(['Ticker', 'Date(FQ)', 'Date(FY)'], axis=1)
     raw_data = raw_data.transpose()
@@ -329,7 +331,7 @@ def plot_rev_seg_over_time(rev_seg_dfI):
     for feature in rev_seg_features_listL[1:]:
         rev_seg_over_time.add_scatter(x = rev_seg_dfL['date'], y = rev_seg_dfL[feature],name =feature,   )
     return rev_seg_over_time
-     
+
 def Calc_correlation_Matrix(Tickers, Start, End, Interval):
     portfolio_tickers = Tickers
     start = Start
@@ -394,19 +396,18 @@ def Stock_Analysis():
     stock_list_pd = pd.read_pickle("StockList") #must Get from Database
     st.markdown('# Enter Stock Name')
     
-    spark = SparkSession.builder.appName("Example").getOrCreate()
-    df = spark.read.parquet('USDBPARQ.parquet')
-    df.createOrReplaceTempView("Stock_Financial_Statements")
-    #result = spark.sql("SELECT * FROM table WHERE Ticker = 'AAPL'")
+    
+    
+    
     
     tickername = st.selectbox("Input Stock Ticker", options=stock_list_pd["symbol"].to_list(), index = stock_list_pd["symbol"].to_list().index("AAPL") )
     period = st.selectbox("Select Period", options=["annual", "quarterly"])
     years_of_data = st.number_input("Number of Reports", step =1, min_value = 2, )
     
     if period == 'annual':
-        stock_data, annual_stock_data_features_list = unpack_annual_data(tickername, spark)
+        stock_data, annual_stock_data_features_list = unpack_annual_data(tickername, db)
     else:
-        stock_data, annual_stock_data_features_list = unpack_quarterly_data(tickername, spark)
+        stock_data, annual_stock_data_features_list = unpack_quarterly_data(tickername, db)
         
     price_df, price_cagr, start_date = get_stock_price_db(tickername, stock_data, years_of_data)
     description_df, description_features_list = get_description_data(tickername)
@@ -459,19 +460,27 @@ def topbar():
         column_list[column_chooser].metric(label = f"{indice}", value = int(indices[indice][-1]), delta=change)
         column_chooser = column_chooser + 1
 
-
+def screener():
+    st.markdown('# Screener')
+    st.markdown('---')
+    columns_chosen = st.multiselect(label = "Choose Column", options=db_columns)
+    confirmButton = st.button("Confirm")
+    if confirmButton:
+        screener = db.select(columns_chosen)
+        st.dataframe(screener, height=1000)
+    #AgGrid(screener)
 
 
 topbar()
 selected = option_menu(
         menu_title = None,
         options = ['Screener','Stock Analysis(API)', 'Risk'],
-        orientation='vertical',
+        orientation='horizontal',
         icons = ['house', 'buildings', 'lock'])
 
 if selected == 'Screener':
-    #screener()
-    st.markdown("yo")
+    screener()
+    
 if selected == 'Stock Analysis(API)':
     Stock_Analysis()
 if selected == 'Risk':
