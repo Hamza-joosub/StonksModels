@@ -4,4 +4,4 @@ pandas
 requests
 streamlit_option_menu
 pyarrow
-pyarrow.parquet
+

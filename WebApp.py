@@ -9,12 +9,16 @@ from streamlit_option_menu import option_menu
 import math
 import random
 from dateutil.relativedelta import relativedelta
-import pyarrow.parquet as pq
+
 import pyarrow as pa
+from pyarrow import parquet as pq
 from st_aggrid import GridOptionsBuilder, AgGrid, GridUpdateMode, DataReturnMode
+
 
 db = pq.read_table("NewUSDatabase.parquet")
 db_columns = (db.to_pandas()).columns.to_list()
+Growth_Rates = pq.read_table("US_Growth_Rates.parquet")
+growth_rates_list = (Growth_Rates.to_pandas()).columns.to_list()
 
 st.set_page_config(layout="wide")
 
@@ -268,6 +272,8 @@ def plot_revenue_metrics_db(id_df_summary_dfI,periodI):
         
         
         return cagr_plot
+    else:
+        return go.Figure()
 
 def plot_historic_multiples(price_dfI):
     price_dfL = price_dfI
@@ -287,6 +293,8 @@ def plot_historic_multiples(price_dfI):
             multiples_plot.add_hline(y = mean - std, line_width = 1, line_dash = "dash", line_color = "orange", name = "-1 Std")
             multiples_plot.add_trace(go.Scatter(x = price_dfL['Date'],y = price_dfL[feature]))
         return multiples_plot
+    else:
+        return go.Figure()
 
 def plot_free_graph1( is_dfI,is_df_features_listI, fp_dfI,fp_df_feature_listI,  cf_dfI,cf_df_feature_listI,years  ):
     is_df_features_listL = is_df_features_listI
@@ -376,6 +384,20 @@ def portfolio_variance(Tickers, Start, End, Interval):
         Portfolio_Volatility = f"{round(math.sqrt(abs(total_risk_Exposure*100)),2)}%"
         st.markdown(f'### Porfolio Variance: {Portfolio_Volatility}')
 
+def get_upcoming_earnings(db):
+    st.markdown("### Upcoming Earnings")
+    days = st.number_input(label = "Number of Days", key = 1, step=1)
+    now = datetime.now().strftime("%Y-%m-%d")
+    three_days = (datetime.now() + pd.Timedelta(days = days)).strftime("%Y-%m-%d")
+    response = requests.get(f'https://financialmodelingprep.com/api/v3/earning_calendar?from={now}&to={three_days}&apikey=6ulfs8VItWZcKZTMzNJxwmikpQvSF1cI')
+    raw_upcoming_earnings_df = pd.DataFrame(response.json())
+    upcoming_earnings_df = pd.DataFrame()
+    upcoming_earnings_df["Earnings Date"] = raw_upcoming_earnings_df["date"]
+    upcoming_earnings_df["Ticker"] = raw_upcoming_earnings_df["symbol"]
+    upcoming_earnings_df = upcoming_earnings_df[upcoming_earnings_df["Ticker"].isin((db.to_pandas())['Ticker'])]
+    return upcoming_earnings_df
+
+
 def risk_analysis():
     stock_list_pd = pd.read_pickle("StockList")
     portfolio_stocks = st.multiselect("Choose Stocks", options=stock_list_pd["symbol"].to_list())
@@ -424,9 +446,12 @@ def Stock_Analysis():
         st.markdown('---')
     
     with st.expander("Profitability Metrics"):
+        st.markdown("### Metrics")
         st.plotly_chart(plot_revenue_metrics_db(annual_stock_data_summary, period))
         
     with st.expander("Historic Multiples"):
+        st.markdown("### Historical Multiples")
+        
         st.plotly_chart(plot_historic_multiples(price_df ))
     
     usa_stock_list = stock_list_pd.query("exchangeShortName == 'NYSE' | exchangeShortName == 'NASDAQ'")['symbol'].to_list()
@@ -462,26 +487,41 @@ def topbar():
 
 def screener():
     st.markdown('# Screener')
-    st.markdown('---')
-    columns_chosen = st.multiselect(label = "Choose Column", options=db_columns)
-    confirmButton = st.button("Confirm")
-    if confirmButton:
-        screener = db.select(columns_chosen)
-        st.dataframe(screener, height=1000)
-    #AgGrid(screener)
+    
+    columns_chosen = st.multiselect(label = "Choose Metrics", options=growth_rates_list[1:])
+    
+    columns_chosen.insert(0, 'companyName') 
+    columns_chosen.insert(0, 'Ticker', )
+    screener = Growth_Rates.select(columns_chosen)
+    
+    AgGrid(screener.to_pandas(), height=700,enable_quicksearch=True)
 
+def economic_data():
+    st.markdown("# Stuff is gonna be here")
 
+def upcoming_events():
+    st.dataframe(get_upcoming_earnings(db))
+    st.markdown("ToDo: looks like kak")
+    
+    
 topbar()
-selected = option_menu(
+st.markdown("---")
+    
+with st.sidebar:
+    selected = option_menu(
         menu_title = None,
-        options = ['Screener','Stock Analysis(API)', 'Risk'],
-        orientation='horizontal',
+        options = ['Screener','Stock Analysis(API)', 'Risk', "Economic Data", 'Upcoming Events'],
+        orientation='vertical',
         icons = ['house', 'buildings', 'lock'])
 
 if selected == 'Screener':
     screener()
-    
 if selected == 'Stock Analysis(API)':
     Stock_Analysis()
 if selected == 'Risk':
     risk_analysis()
+if selected == 'Economic Data':
+    economic_data()
+if selected == 'Upcoming Events':
+    upcoming_events()
+        
