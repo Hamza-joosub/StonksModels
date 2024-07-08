@@ -472,18 +472,6 @@ def Stock_Analysis():
     with st.expander("Cash Flow Statement"):   
         st.table(((stock_data.transpose()).iloc[72:]).iloc[:, ::-1])
         
-def topbar():
-    last_day = (datetime.today() - pd.Timedelta(days=4)).strftime('%Y-%m-%d')
-    now = datetime.today().strftime('%Y-%m-%d')
-    indicies_list = ["QQQ", "SPY", "DIA"]
-    col1,col2,col3 = st.columns(3)
-    column_list = [col1,col2,col3]
-    column_chooser= 0
-    indices = pd.DataFrame(yf.download(tickers=indicies_list, start=last_day, end = now, interval="1d" )["Close"])
-    for indice in indicies_list:
-        change = (round((indices[indice][-1] - indices[indice][-2])/indices[indice][-1]*100,2))
-        column_list[column_chooser].metric(label = f"{indice}", value = int(indices[indice][-1]), delta=change)
-        column_chooser = column_chooser + 1
 
 def screener():
     st.markdown('# Screener')
@@ -504,7 +492,7 @@ def upcoming_events():
     st.markdown("ToDo: looks like kak")
     
     
-topbar()
+#topbar()
 st.markdown("---")
     
 with st.sidebar:
