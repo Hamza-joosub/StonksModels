@@ -132,29 +132,6 @@ def get_stock_price_db(tickernameI, is_dfI,years):
     price_cagrL = round(((end_price/start_priceL)**(1/is_dfL.shape[0])-1)*100,2)
     return price_dfL, price_cagrL, start_dateL
 
-def get_description_data(tickernameI):
-    tickernameL = tickernameI
-    description_url = f"https://financialmodelingprep.com/api/v3/profile/{tickernameL}?apikey={key}"
-    description_dfL = pd.DataFrame(requests.get(description_url).json())
-    description_features_listL = description_dfL.columns.values.tolist()
-    return description_dfL, description_features_listL
-
-def get_rev_seg_data(tickernameI, periodI):
-    tickernameL = tickernameI
-    periodL = periodI
-    url = f'https://financialmodelingprep.com/api/v4/revenue-product-segmentation?symbol={tickernameL}&structure=flat&period={periodL}&apikey=6ulfs8VItWZcKZTMzNJxwmikpQvSF1cI'
-    rev_seg_json = requests.get(url).json()
-    rev_seg_dfL = pd.DataFrame()
-    for date in rev_seg_json:
-        temp_df = pd.DataFrame(date).transpose()
-        rev_seg_dfL = pd.concat([rev_seg_dfL, temp_df])
-    last_features = rev_seg_dfL.iloc[0,:]
-    last_features = last_features.dropna()
-    last_features_list = last_features.index.to_list()
-    rev_seg_dfL = rev_seg_dfL[last_features_list]
-    rev_seg_dfL = rev_seg_dfL.dropna()
-    return rev_seg_dfL
-
 def process_company_description(description_dfI):
     descriptionL = description_dfI.iloc[0,17]
     return descriptionL
@@ -296,49 +273,22 @@ def plot_historic_multiples(price_dfI):
     else:
         return go.Figure()
 
-def plot_free_graph1( is_dfI,is_df_features_listI, fp_dfI,fp_df_feature_listI,  cf_dfI,cf_df_feature_listI,years  ):
-    is_df_features_listL = is_df_features_listI
-    fp_df_feature_listL = fp_df_feature_listI
-    cf_df_feature_listL = cf_df_feature_listI
-    allFeatures_listL = is_df_features_listL + fp_df_feature_listL + cf_df_feature_listL
-    is_dfL = is_dfI.iloc[-years:]
-    fp_dfL = fp_dfI.iloc[-years:]
-    cf_dfL = cf_dfI.iloc[-years:]
-    allFeatures_listL = is_df_features_listL + fp_df_feature_listL + cf_df_feature_listL
+def plot_free_graph1(annual_stock_data_summaryI  ):
+    allFeatures_listL = annual_stock_data_summaryI.columns.to_list()
     #randomKey = random.randint(0,200)
     with st.form(f"Free Graph Form"):
-        
+        to_plot1 = ['revenue(FY)']
         to_plot1 = st.multiselect("Things to Plot",options = allFeatures_listL)
         freegraph1_submit = st.form_submit_button("confirm")
     if freegraph1_submit | st.session_state["freegraph1"] == True:
         st.session_state["freegraph1"] = True
         free_plot1 = go.Figure()
         for metric in to_plot1:
-            if metric in is_df_features_listL:
-                free_plot1.add_trace(go.Scatter(x = is_dfL["Date"], y = is_dfL[metric], name = f"{metric}"))
-                continue
-            if metric in fp_df_feature_listL:
-                free_plot1.add_trace(go.Scatter(x = fp_dfL["Date"], y = fp_dfL[metric], name = f"{metric}"))
-                continue
-            if metric in cf_df_feature_listL:
-                free_plot1.add_trace(go.Scatter(x = cf_dfL["Date"], y = cf_dfL[metric], name = f"{metric}"))
-                continue
+                free_plot1.add_trace(go.Scatter(x = annual_stock_data_summaryI.index, y = annual_stock_data_summaryI[metric], name = f"{metric}"))
+                
         return free_plot1
-
-def plot_rev_segmentation_snapshot(rev_seg_dfI):
-    rev_seg_dfL = rev_seg_dfI.transpose()
-    fig =  px.pie(names=rev_seg_dfL.index.to_list(),values = rev_seg_dfL.iloc[:,0], color_discrete_sequence= px.colors.sequential.deep )
-    return fig
-
-def plot_rev_seg_over_time(rev_seg_dfI):
-    rev_seg_dfL = rev_seg_dfI
-    rev_seg_dfL.reset_index(inplace=True)
-    rev_seg_dfL.rename(columns = {'index' : 'date'}, inplace=True)
-    rev_seg_features_listL = rev_seg_dfL.columns.to_list()
-    rev_seg_over_time = go.Figure()
-    for feature in rev_seg_features_listL[1:]:
-        rev_seg_over_time.add_scatter(x = rev_seg_dfL['date'], y = rev_seg_dfL[feature],name =feature,   )
-    return rev_seg_over_time
+    else:
+        return go.Figure()
 
 def Calc_correlation_Matrix(Tickers, Start, End, Interval):
     portfolio_tickers = Tickers
@@ -384,20 +334,6 @@ def portfolio_variance(Tickers, Start, End, Interval):
         Portfolio_Volatility = f"{round(math.sqrt(abs(total_risk_Exposure*100)),2)}%"
         st.markdown(f'### Porfolio Variance: {Portfolio_Volatility}')
 
-def get_upcoming_earnings(db):
-    st.markdown("### Upcoming Earnings")
-    days = st.number_input(label = "Number of Days", key = 1, step=1)
-    now = datetime.now().strftime("%Y-%m-%d")
-    three_days = (datetime.now() + pd.Timedelta(days = days)).strftime("%Y-%m-%d")
-    response = requests.get(f'https://financialmodelingprep.com/api/v3/earning_calendar?from={now}&to={three_days}&apikey=6ulfs8VItWZcKZTMzNJxwmikpQvSF1cI')
-    raw_upcoming_earnings_df = pd.DataFrame(response.json())
-    upcoming_earnings_df = pd.DataFrame()
-    upcoming_earnings_df["Earnings Date"] = raw_upcoming_earnings_df["date"]
-    upcoming_earnings_df["Ticker"] = raw_upcoming_earnings_df["symbol"]
-    upcoming_earnings_df = upcoming_earnings_df[upcoming_earnings_df["Ticker"].isin((db.to_pandas())['Ticker'])]
-    return upcoming_earnings_df
-
-
 def risk_analysis():
     stock_list_pd = pd.read_pickle("StockList")
     portfolio_stocks = st.multiselect("Choose Stocks", options=stock_list_pd["symbol"].to_list())
@@ -432,18 +368,12 @@ def Stock_Analysis():
         stock_data, annual_stock_data_features_list = unpack_quarterly_data(tickername, db)
         
     price_df, price_cagr, start_date = get_stock_price_db(tickername, stock_data, years_of_data)
-    description_df, description_features_list = get_description_data(tickername)
-    s = process_company_description(description_df )
     price_df, Multiples_df = process_historic_multiples_db(price_df, stock_data, years_of_data, period)
     annual_stock_data_summary, stock_data = process_revenue_metrics_db(stock_data,years_of_data, period)
     
     with st.expander("Price"):
         st.markdown('# Price')
         st.plotly_chart(plot_stock_price(price_df, price_cagr), use_container_width=True)
-        
-    with st.expander("Description"):
-        st.markdown(plot_description(s))
-        st.markdown('---')
     
     with st.expander("Profitability Metrics"):
         st.markdown("### Metrics")
@@ -454,15 +384,6 @@ def Stock_Analysis():
         
         st.plotly_chart(plot_historic_multiples(price_df ))
     
-    usa_stock_list = stock_list_pd.query("exchangeShortName == 'NYSE' | exchangeShortName == 'NASDAQ'")['symbol'].to_list()
-    if tickername in usa_stock_list:
-        with st.expander("Revenue Breakdown"):
-            st.markdown("# Revenue Breakdown")
-            rev_seg_df = get_rev_seg_data(tickername,period )
-            
-            st.plotly_chart(plot_rev_segmentation_snapshot(rev_seg_df), use_container_width=True)
-            st.plotly_chart(plot_rev_seg_over_time(rev_seg_df), use_container_width=True)
-            st.markdown('---')
     with st.expander("income Statement"):   
         st.table(((stock_data.transpose()).iloc[0:26]).iloc[:, ::-1])
         
@@ -472,7 +393,10 @@ def Stock_Analysis():
     with st.expander("Cash Flow Statement"):   
         st.table(((stock_data.transpose()).iloc[72:]).iloc[:, ::-1])
         
-
+    with st.expander("Free Graph"):   
+        st.markdown("### Free Graph")
+        st.plotly_chart(plot_free_graph1(stock_data))
+        
 def screener():
     st.markdown('# Screener')
     
@@ -488,28 +412,23 @@ def economic_data():
     st.markdown("# Stuff is gonna be here")
 
 def upcoming_events():
-    st.dataframe(get_upcoming_earnings(db))
     st.markdown("ToDo: looks like kak")
-    
-    
+
 #topbar()
 st.markdown("---")
     
 with st.sidebar:
     selected = option_menu(
         menu_title = None,
-        options = ['Screener','Stock Analysis(API)', 'Risk', "Economic Data", 'Upcoming Events'],
+        options = ['Portfolio Composition Models'],
         orientation='vertical',
         icons = ['house', 'buildings', 'lock'])
 
-if selected == 'Screener':
-    screener()
-if selected == 'Stock Analysis(API)':
-    Stock_Analysis()
-if selected == 'Risk':
+#if selected == 'Screener':
+    #screener()
+if selected == 'Portfolio Composition Models':
     risk_analysis()
-if selected == 'Economic Data':
-    economic_data()
-if selected == 'Upcoming Events':
-    upcoming_events()
+
+    
+
         
