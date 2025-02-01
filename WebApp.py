@@ -414,13 +414,24 @@ def economic_data():
 def upcoming_events():
     st.markdown("ToDo: looks like kak")
 
+def dcfModel():
+    stock_list_pd = pd.read_pickle("StockList") #must Get from Database
+    st.markdown('# Enter Stock Name')
+    tickername = st.selectbox("Input Stock Ticker", options=stock_list_pd["symbol"].to_list(), index = stock_list_pd["symbol"].to_list().index("AAPL") )
+    ticker = yf.Ticker(tickername)
+    cash_flow_stmnt = ticker.cash_flow
+    income_stmnt = ticker.income_stmt
+    balance_sheet_stmnt = ticker.balance_sheet
+    st.table(cash_flow_stmnt)
+
+
 #topbar()
 st.markdown("---")
     
 with st.sidebar:
     selected = option_menu(
         menu_title = None,
-        options = ['Portfolio Composition Models'],
+        options = ['Portfolio Composition Models', 'DCF Model'],
         orientation='vertical',
         icons = ['house', 'buildings', 'lock'])
 
@@ -428,6 +439,9 @@ with st.sidebar:
     #screener()
 if selected == 'Portfolio Composition Models':
     risk_analysis()
+    
+if selected == 'DCF Model':
+    dcfModel()
 
     
 
