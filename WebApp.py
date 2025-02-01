@@ -440,7 +440,7 @@ def dcfModel():
     # Display Basic Info
     
     st.markdown(f'# {name}')
-    prices_df = yf.download(tickers=[tickername], start='2020-01-01')['Close']
+    prices_df = ticker.history(start ='2020-01-01')['Close']
     prices_df = prices_df.reset_index()
     stock_price_fig = go.Figure()
     stock_price_fig.add_trace(go.Scatter(x = prices_df['Date'], y=prices_df['Close']))
