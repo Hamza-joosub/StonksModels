@@ -415,14 +415,192 @@ def upcoming_events():
     st.markdown("ToDo: looks like kak")
 
 def dcfModel():
+    #Get Statement and Ticker Data
     stock_list_pd = pd.read_pickle("StockList") #must Get from Database
     st.markdown('# Enter Stock Name')
     tickername = st.selectbox("Input Stock Ticker", options=stock_list_pd["symbol"].to_list(), index = stock_list_pd["symbol"].to_list().index("AAPL") )
     ticker = yf.Ticker(tickername)
-    cash_flow_stmnt = ticker.cash_flow
-    income_stmnt = ticker.income_stmt
-    balance_sheet_stmnt = ticker.balance_sheet
-    st.table(cash_flow_stmnt)
+    cash_flow_stmnt = ((ticker.cash_flow).T)
+    income_stmnt = (ticker.income_stmt).T
+    balance_sheet_stmnt = (ticker.balance_sheet).T
+    info = ticker.info
+    
+    # Assign Info To Variables
+    industry = info.get('industry')
+    sector = info.get('sector')
+    description = info.get('longBusinessSummary')
+    beta = info.get('beta')
+    sharesOutstanding =  info.get('sharesOutstanding')
+    name = info.get('longName')
+    currentPrice = info.get('currentPrice')
+    targetHighPrice = info.get('targetHighPrice')
+    targetLowPrice = info.get('targetLowPrice')
+    targetMeanPrice = info.get('targetMeanPrice')
+    
+    # Display Basic Info
+    st.markdown(f'# {name}')
+    prices_df = yf.download(tickers=[tickername], start='2020-01-01')['Close']
+    prices_df = prices_df.reset_index()
+    stock_price_fig = go.Figure()
+    stock_price_fig.add_trace(go.Scatter(x = prices_df['Date'], y=prices_df['Close']))
+    stock_price_fig.update_xaxes(title_text = 'Date')
+    stock_price_fig.update_yaxes(title_text = 'Price')
+    stock_price_fig.add_hline(y = float(targetMeanPrice), line_color='salmon', annotation_text=f'Mean target Price: {targetMeanPrice}',line_dash = 'dot')
+    stock_price_fig.add_hline(y = float(targetLowPrice), line_color='green', annotation_text=f'Low target Price: {targetLowPrice}',line_dash = 'dot')
+    stock_price_fig.add_hline(y = float(targetHighPrice), line_color='orange', annotation_text=f'High target Price: {targetHighPrice}', line_dash = 'dot')
+    st.plotly_chart(stock_price_fig)
+    st.markdown(f"{description}")
+    st.markdown(f'industry: {industry}, sector: {sector}')
+    
+    #Plot Line Items
+    st.markdown('### Plot Line Items')
+    cash_flow_stmnt_Metrics = cash_flow_stmnt.columns.to_list()
+    income_stmnt_Metrics = income_stmnt.columns.to_list()
+    balance_sheet_stmnt_Metrics = balance_sheet_stmnt.columns.to_list()
+    all_metrics = cash_flow_stmnt_Metrics+income_stmnt_Metrics+balance_sheet_stmnt_Metrics
+    
+    metric_name = st.selectbox('Select Line Item to Plot', options=all_metrics, placeholder='Select Line Item')
+    if metric_name in cash_flow_stmnt_Metrics:
+        metric_no_na = cash_flow_stmnt[metric_name]
+        metric_no_na = metric_no_na.dropna()
+        metric_no_na = metric_no_na.iloc[::-1]
+        metric_growth = metric_no_na.pct_change(fill_method=None)
+        metric_growth = metric_growth.iloc[::-1]
+        metric_growth=metric_growth.astype(float)*100
+        metric_growth = metric_growth.round(decimals=2)
+        metric_growth = metric_growth.astype('string') + " %"
+        meric_ot_fig = go.Figure()
+        meric_ot_fig.add_traces(go.Bar(x = cash_flow_stmnt.index,y = cash_flow_stmnt[metric_name], text=metric_growth, marker_color='salmon'))
+        meric_ot_fig.update_xaxes(title_text = 'Date')
+        meric_ot_fig.update_yaxes(title_text = metric_name)
+        meric_ot_fig.update_layout(title_text=f'{metric_name} Over Time')
+    elif metric_name in income_stmnt_Metrics:   
+        metric_no_na = income_stmnt[metric_name]
+        metric_no_na = metric_no_na.dropna()
+        metric_no_na = metric_no_na.iloc[::-1]
+        metric_growth = metric_no_na.pct_change(fill_method=None)
+        metric_growth = metric_growth.iloc[::-1]
+        metric_growth=metric_growth.astype(float)*100
+        metric_growth = metric_growth.round(decimals=2)
+        metric_growth = metric_growth.astype('string') + " %"
+        meric_ot_fig = go.Figure()
+        meric_ot_fig.add_traces(go.Bar(x = income_stmnt.index,y = income_stmnt[metric_name], text=metric_growth, marker_color='salmon'))
+        meric_ot_fig.update_xaxes(title_text = 'Date')
+        meric_ot_fig.update_yaxes(title_text = metric_name)
+        meric_ot_fig.update_layout(title_text=f'{metric_name} Over Time')
+    else:
+        metric_no_na = balance_sheet_stmnt[metric_name]
+        metric_no_na = metric_no_na.dropna()
+        metric_no_na = metric_no_na.iloc[::-1]
+        metric_growth = metric_no_na.pct_change(fill_method=None)
+        metric_growth = metric_growth.iloc[::-1]
+        metric_growth=metric_growth.astype(float)*100
+        metric_growth = metric_growth.round(decimals=2)
+        metric_growth = metric_growth.astype('string') + " %"
+        meric_ot_fig = go.Figure()
+        meric_ot_fig.add_traces(go.Bar(x = balance_sheet_stmnt.index,y = balance_sheet_stmnt[metric_name], text=metric_growth, marker_color='salmon'))
+        meric_ot_fig.update_xaxes(title_text = 'Date')
+        meric_ot_fig.update_yaxes(title_text = metric_name)
+        meric_ot_fig.update_layout(title_text=f'{metric_name} Over Time')
+    st.plotly_chart(meric_ot_fig)
+
+    st.markdown("## Future Cash Flows")
+    #Ask for Forecast Length
+    n = st.number_input('Forecast Length', min_value=2, step=1)
+    fcf_Growth_list = []
+    for i in range(1,n+1):
+            temp_FCF_Growth = st.number_input(f'Free Cash Flow Growth Forecast {i}', )
+            fcf_Growth_list.append(temp_FCF_Growth)
+    curr_FCF = cash_flow_stmnt['Free Cash Flow'].to_list()[0]
+    g = (st.number_input(f'Terminal Growth Rate'))/100
+    
+    future_Cash_Flows = {'Free Cash Flow Current': cash_flow_stmnt['Free Cash Flow'].to_list()[0]
+            }
+    temp_fcf = curr_FCF
+    for i in range(0,len(fcf_Growth_list)):
+        temp_fcf = temp_fcf+((fcf_Growth_list[i]/100)*temp_fcf)
+        future_Cash_Flows[f'Forecast {i+1}'] =temp_fcf
+    st.table(future_Cash_Flows)
+    
+    
+    st.markdown("## Cost of Equity(USING CAPM)")
+    #Get Risk Free Rate
+    risk_free_rate = st.selectbox('Choose Risk Free Rate Proxy', options=['3 Month Treasury Yield', '10 Year Treasury Yield'])
+    if risk_free_rate == '3 Month Treasury Yield':
+        tbill = yf.Ticker("^IRX")
+    else:
+        tbill = yf.Ticker("^TNX")    
+    data = tbill.history(period="1d")
+    rf = data['Close'].iloc[-1] / 100
+    
+    #get Market Return
+    market_index_long_name = st.selectbox('Choose Market Index', options=['S&P500', 'JSE Top 40', 'MSCI World Index'])
+    annualized_over = st.selectbox('Choose How long To annualize Returns over', options=['1 Year', '5 Years', '10 Years'])
+    if market_index_long_name == 'S&P500':
+        market_index = '^SP500TR'
+    elif market_index_long_name == 'S&P500':
+        market_index = 'J200.JO'
+    else: 
+        market_index = '^MSCIWD'
+    if annualized_over == '1':
+        market_data = yf.Ticker(market_index).history(period="1y")
+        rm = (market_data["Close"].iloc[-1] / market_data["Close"].iloc[0]) - 1
+    elif annualized_over == '5':
+        market_data = yf.Ticker(market_index).history(period="5y")
+        rm = (market_data["Close"].iloc[-1] / market_data["Close"].iloc[0]) ** (1/5) - 1
+    else:
+        market_data = yf.Ticker(market_index).history(period="10y")
+        rm = (market_data["Close"].iloc[-1] / market_data["Close"].iloc[0]) ** (1/10) - 1
+    
+    st.markdown(f'Risk Free Rate({risk_free_rate}): {round(rf*100,3)} %')
+    st.markdown(f'Market Return({market_index_long_name}) {round(rm*100,3)} %')
+    st.markdown(f"Beta: {beta}")
+    rc = round((rf + beta*(rm-rf)),2)
+    st.markdown(f'##### Cost Of Equity: {round(rc*100,2)} %')
+    
+    st.markdown("## Cost of Debt")
+    if math.isnan(income_stmnt['Interest Expense'].to_list()[0]):
+        interest_expense = 0
+    else:
+        interest_expense = income_stmnt['Interest Expense'].to_list()[0]
+    total_debt = balance_sheet_stmnt['Total Debt'].to_list()[0]
+    rd = (interest_expense/total_debt)
+  
+    st.markdown(f'Interest Expense: {interest_expense}')
+    st.markdown(f'Total Debt: {total_debt}')
+    st.markdown(f'##### Cost of Debt: {round(rd*100,2)} %')
+    
+    st.markdown("## Weighted Average Cost of Capital")
+    total_Equity = balance_sheet_stmnt['Total Equity Gross Minority Interest'].to_list()[0]
+    st.markdown(f"Total Debt: {total_debt}")
+    st.markdown(f"Total Equity: {total_Equity}")
+    wacc = ((total_Equity/(total_Equity+total_debt))*rc)+((total_debt/(total_Equity+total_debt))*rd)
+    st.markdown(f'##### Wacc: {round(wacc*100,2)}%')
+    
+    st.markdown('## Discounted Future Cash Flows to Present Value')
+    future_cash_Flows_list = list(future_Cash_Flows.values())
+    tv = (future_cash_Flows_list[-1]*(1+g))/(wacc-g)
+    pv = 0
+    for t in range(1,len(future_cash_Flows_list)):
+        print(future_cash_Flows_list[t])
+        pv = pv + future_cash_Flows_list[t]/(1+wacc)**t
+    ev = pv+(tv/(1+wacc)**(len(future_cash_Flows_list)+1))
+    net_debt = balance_sheet_stmnt['Net Debt'].to_list()[0]
+    st.markdown(f'##### Equity Value: {round(ev,0)}') 
+    
+    st.markdown('## Intrinsic Value per Sare')
+    st.markdown(f"Net Debt: {net_debt}")
+     
+    iv = ((ev-net_debt)/sharesOutstanding)
+    st.markdown(f"#### Intrinsic Value Per Share: ${round(iv,2)}")
+    st.markdown(f"#### Current Price : ${currentPrice}")
+    if currentPrice>iv+iv*0.1:
+        status = 'Overvalued'
+    elif currentPrice<iv-iv*0.1:
+        status = 'undervalued'
+    else:
+        status = 'Fairly Valued'
+    st.markdown(f"## {name} is {status}")
 
 
 #topbar()
