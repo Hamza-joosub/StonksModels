@@ -540,7 +540,7 @@ def dcfModel():
     annualized_over = st.selectbox('Choose How long To annualize Returns over', options=['1 Year', '5 Years', '10 Years'])
     if market_index_long_name == 'S&P500':
         market_index = '^SP500TR'
-    elif market_index_long_name == 'S&P500':
+    elif market_index_long_name == 'JSE Top 40':
         market_index = '^J200.JO'
         
     if annualized_over == '1 Year':
