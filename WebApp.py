@@ -438,6 +438,7 @@ def dcfModel():
     targetMeanPrice = info.get('targetMeanPrice')
     
     # Display Basic Info
+    '''
     st.markdown(f'# {name}')
     prices_df = yf.download(tickers=[tickername], start='2020-01-01')['Close']
     prices_df = prices_df.reset_index()
@@ -449,6 +450,7 @@ def dcfModel():
     stock_price_fig.add_hline(y = float(targetLowPrice), line_color='green', annotation_text=f'Low target Price: {targetLowPrice}',line_dash = 'dot')
     stock_price_fig.add_hline(y = float(targetHighPrice), line_color='orange', annotation_text=f'High target Price: {targetHighPrice}', line_dash = 'dot')
     st.plotly_chart(stock_price_fig)
+    '''
     st.markdown(f"{description}")
     st.markdown(f'industry: {industry}, sector: {sector}')
     
