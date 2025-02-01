@@ -536,18 +536,17 @@ def dcfModel():
     rf = data['Close'].iloc[-1] / 100
     
     #get Market Return
-    market_index_long_name = st.selectbox('Choose Market Index', options=['S&P500', 'JSE Top 40', 'MSCI World Index'])
+    market_index_long_name = st.selectbox('Choose Market Index', options=['S&P500', 'JSE Top 40'])
     annualized_over = st.selectbox('Choose How long To annualize Returns over', options=['1 Year', '5 Years', '10 Years'])
     if market_index_long_name == 'S&P500':
         market_index = '^SP500TR'
     elif market_index_long_name == 'S&P500':
-        market_index = 'J200.JO'
-    else: 
-        market_index = '^MSCIWD'
-    if annualized_over == '1':
+        market_index = '^J200.JO'
+        
+    if annualized_over == '1 Year':
         market_data = yf.Ticker(market_index).history(period="1y")
         rm = (market_data["Close"].iloc[-1] / market_data["Close"].iloc[0]) - 1
-    elif annualized_over == '5':
+    elif annualized_over == '5 Years':
         market_data = yf.Ticker(market_index).history(period="5y")
         rm = (market_data["Close"].iloc[-1] / market_data["Close"].iloc[0]) ** (1/5) - 1
     else:
