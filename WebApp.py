@@ -446,9 +446,9 @@ def dcfModel():
     stock_price_fig.add_trace(go.Scatter(x = prices_df['Date'], y=prices_df['Close']))
     stock_price_fig.update_xaxes(title_text = 'Date')
     stock_price_fig.update_yaxes(title_text = 'Price')
-    stock_price_fig.add_hline(y = float(targetMeanPrice), line_color='salmon', annotation_text=f'Mean target Price: {targetMeanPrice}',line_dash = 'dot')
-    stock_price_fig.add_hline(y = float(targetLowPrice), line_color='green', annotation_text=f'Low target Price: {targetLowPrice}',line_dash = 'dot')
-    stock_price_fig.add_hline(y = float(targetHighPrice), line_color='orange', annotation_text=f'High target Price: {targetHighPrice}', line_dash = 'dot')
+    stock_price_fig.add_hline(y = float(targetMeanPrice), line_color='orange', annotation_text=f'Mean target Price: {targetMeanPrice}',line_dash = 'dot')
+    stock_price_fig.add_hline(y = float(targetLowPrice), line_color='red', annotation_text=f'Low target Price: {targetLowPrice}',line_dash = 'dot')
+    stock_price_fig.add_hline(y = float(targetHighPrice), line_color='green', annotation_text=f'High target Price: {targetHighPrice}', line_dash = 'dot')
     st.plotly_chart(stock_price_fig)
     
     st.markdown(f"{description}")
@@ -471,11 +471,13 @@ def dcfModel():
         metric_growth=metric_growth.astype(float)*100
         metric_growth = metric_growth.round(decimals=2)
         metric_growth = metric_growth.astype('string') + " %"
+        metric_list_form = cash_flow_stmnt[metric_name].dropna().to_list()
+        cagr = (metric_list_form[0]/metric_list_form[-1])**(1/len(metric_list_form))-1
         meric_ot_fig = go.Figure()
         meric_ot_fig.add_traces(go.Bar(x = cash_flow_stmnt.index,y = cash_flow_stmnt[metric_name], text=metric_growth, marker_color='salmon'))
         meric_ot_fig.update_xaxes(title_text = 'Date')
         meric_ot_fig.update_yaxes(title_text = metric_name)
-        meric_ot_fig.update_layout(title_text=f'{metric_name} Over Time')
+        meric_ot_fig.update_layout(title_text=f'{metric_name} Over Time with CAGR: {round(cagr*100,2)} %')
     elif metric_name in income_stmnt_Metrics:   
         metric_no_na = income_stmnt[metric_name]
         metric_no_na = metric_no_na.dropna()
@@ -485,11 +487,13 @@ def dcfModel():
         metric_growth=metric_growth.astype(float)*100
         metric_growth = metric_growth.round(decimals=2)
         metric_growth = metric_growth.astype('string') + " %"
+        metric_list_form = income_stmnt[metric_name].dropna().to_list()
+        cagr = (metric_list_form[0]/metric_list_form[-1])**(1/len(metric_list_form))-1
         meric_ot_fig = go.Figure()
         meric_ot_fig.add_traces(go.Bar(x = income_stmnt.index,y = income_stmnt[metric_name], text=metric_growth, marker_color='salmon'))
         meric_ot_fig.update_xaxes(title_text = 'Date')
         meric_ot_fig.update_yaxes(title_text = metric_name)
-        meric_ot_fig.update_layout(title_text=f'{metric_name} Over Time')
+        meric_ot_fig.update_layout(title_text=f'{metric_name} Over Time With CAGR {round(cagr*100,2)} %')
     else:
         metric_no_na = balance_sheet_stmnt[metric_name]
         metric_no_na = metric_no_na.dropna()
@@ -499,29 +503,43 @@ def dcfModel():
         metric_growth=metric_growth.astype(float)*100
         metric_growth = metric_growth.round(decimals=2)
         metric_growth = metric_growth.astype('string') + " %"
+        metric_list_form = balance_sheet_stmnt[metric_name].dropna().to_list()
+        cagr = (metric_list_form[0]/metric_list_form[-1])**(1/len(metric_list_form))-1
         meric_ot_fig = go.Figure()
         meric_ot_fig.add_traces(go.Bar(x = balance_sheet_stmnt.index,y = balance_sheet_stmnt[metric_name], text=metric_growth, marker_color='salmon'))
         meric_ot_fig.update_xaxes(title_text = 'Date')
         meric_ot_fig.update_yaxes(title_text = metric_name)
-        meric_ot_fig.update_layout(title_text=f'{metric_name} Over Time')
+        meric_ot_fig.update_layout(title_text=f'{metric_name} Over Time With CAGR: {round(cagr*100,2)} %')
+        
     st.plotly_chart(meric_ot_fig)
 
     st.markdown("## Future Cash Flows")
     #Ask for Forecast Length
     n = st.number_input('Forecast Length', min_value=2, step=1)
-    fcf_Growth_list = []
-    for i in range(1,n+1):
-            temp_FCF_Growth = st.number_input(f'Free Cash Flow Growth Forecast {i}', )
-            fcf_Growth_list.append(temp_FCF_Growth)
-    curr_FCF = cash_flow_stmnt['Free Cash Flow'].to_list()[0]
-    g = (st.number_input(f'Terminal Growth Rate'))/100
     
-    future_Cash_Flows = {'Free Cash Flow Current': cash_flow_stmnt['Free Cash Flow'].to_list()[0]
-            }
-    temp_fcf = curr_FCF
-    for i in range(0,len(fcf_Growth_list)):
-        temp_fcf = temp_fcf+((fcf_Growth_list[i]/100)*temp_fcf)
-        future_Cash_Flows[f'Forecast {i+1}'] =temp_fcf
+    cagr_toggle = st.toggle("Use CAGR Of FCF Instead", value=False)
+    if cagr_toggle:
+        cagr_fcf = st.number_input('Input CAGR Of Free Cash Flows')
+        g = (st.number_input(f'Terminal Growth Rate'))/100
+        future_Cash_Flows = {'Free Cash Flow Current': cash_flow_stmnt['Free Cash Flow'].to_list()[0]
+                }
+        for i in range(1,n+1):
+            future_Cash_Flows[f'Forecast {i+1}'] =cash_flow_stmnt['Free Cash Flow'].to_list()[0]*(1+cagr_fcf/100)**i
+          
+            
+    else:
+        fcf_Growth_list = []
+        for i in range(1,n+1):
+                temp_FCF_Growth = st.number_input(f'Free Cash Flow Growth Forecast {i}', )
+                fcf_Growth_list.append(temp_FCF_Growth)
+        curr_FCF = cash_flow_stmnt['Free Cash Flow'].to_list()[0]
+        g = (st.number_input(f'Terminal Growth Rate'))/100
+        future_Cash_Flows = {'Free Cash Flow Current': cash_flow_stmnt['Free Cash Flow'].to_list()[0]
+                }
+        temp_fcf = curr_FCF
+        for i in range(0,len(fcf_Growth_list)):
+            temp_fcf = temp_fcf+((fcf_Growth_list[i]/100)*temp_fcf)
+            future_Cash_Flows[f'Forecast {i+1}'] =temp_fcf
     st.table(future_Cash_Flows)
     
     
