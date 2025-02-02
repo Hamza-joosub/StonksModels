@@ -1,5 +1,6 @@
 yfinance
 plotly_express
+plotly.graph_objects
 pandas
 requests
 streamlit_option_menu
