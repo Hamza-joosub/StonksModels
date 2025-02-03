@@ -1,8 +1,7 @@
 yfinance
-plotly_express
 plotly
 pandas
-requests
 streamlit_option_menu
-pyarrow
 streamlit-aggrid
+investpy
+scikit-learn

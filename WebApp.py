@@ -6,9 +6,9 @@ import plotly.graph_objects as go
 from streamlit_option_menu import option_menu
 import math
 import numpy as np
-
-
-from st_aggrid import GridOptionsBuilder, AgGrid, GridUpdateMode, DataReturnMode
+import sklearn.preprocessing
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
 
 st.set_page_config(layout="wide")
 
@@ -203,8 +203,9 @@ def dcfModel():
         tbill = yf.Ticker("^IRX")
     else:
         tbill = yf.Ticker("^TNX")    
-    data = tbill.history(period="1d")
-    rf = data['Close'].iloc[-1] / 100
+    st.markdown(tbill)
+    rf = tbill.info.get('previousClose')/100
+
     
     #get Market Return
     market_index_long_name = st.selectbox('Choose Market Index', options=['S&P500', 'JSE Top 40'])
@@ -426,13 +427,94 @@ def multiplesModel():
     st.markdown(f"### Average of All Valuations:$ {round(((valuation1+valuation2+valuation3+valuation4)/(4)),2)}")
     st.markdown(f'### Current Price: ${ticker.info.get('currentPrice')}')
     
+def k_means_clustering():
+    url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+    sp500_table = pd.read_html(url)[0]  # First table contains S&P 500 tickers
+
+    # Keep only the columns of interest
+    sp500_table = sp500_table[["Symbol"]]
+    sp500_list = sp500_table['Symbol'].to_list()
+
+    target_stock = st.selectbox('Select Target Stock', options=sp500_list)
+    
+    k = int(st.number_input('Enter Number of Clusters', min_value=2, step=1))
+    ok = st.button("Cluster")
+    loading = st.progress(0)
+    
+    if ok:
+        data = []
+        progress = 0
+        st.markdown("Loading Data...")
+        for ticker in sp500_list:
+            stock = yf.Ticker(ticker)
+            
+            # Extract relevant financial metrics
+            try:
+                market_cap = stock.info["marketCap"]
+                revenue_growth = stock.info.get("revenueGrowth", None)
+                earningsGrowth = stock.info.get("earningsGrowth", None)
+                enterpriseToEbitda = stock.info.get("earningsGrowth", None)
+                enterpriseToRevenue  = stock.info.get("earningsGrowth", None)
+                ebitda_margin = stock.info.get("ebitdaMargins", None)
+                operatingMargins = stock.info.get("operatingMargins", None)
+                de = stock.info.get("debtToEquity", None)
+                pe = stock.info.get("trailingPE", None)
+                roe = stock.info.get("returnOnEquity", None)
+                roa = stock.info.get("returnOnAssets", None)
+                
+                data.append([ticker,market_cap,revenue_growth,earningsGrowth,enterpriseToEbitda,enterpriseToRevenue,ebitda_margin,operatingMargins,de, pe, roe,roa])
+                progress = progress+(1/len(sp500_list))
+                loading.progress(progress)
+            except Exception as e:
+                print(f"Error fetching data for {ticker}: {e}")
+
+        # Convert to DataFrame
+        df = pd.DataFrame(data, columns=['Company', 'Market Cap', 'Rev Growth', 'NI Growth', 'EV/EBITDA', 'EV/Rev', 'EBITDA Margin', 'Operating Margin', 'Debt/Equity', 'PE', 'ROE','ROA'])
+        df_no_nan = df.dropna()
+
+
+        # Drop non-numeric columns
+        df_numeric = df.drop(columns=["Company"])
+
+        # Normalize the data
+        scaler = StandardScaler()
+        df_scaled = scaler.fit_transform(df_numeric)
+
+        # Convert back to DataFrame
+        df_scaled = pd.DataFrame(df_scaled, columns=df_numeric.columns)
+        df_scaled.insert(0, "Company", df["Company"])  # Reinsert company names
+        df_scaled = df_scaled.dropna()
+        # Drop non-numeric columns
+        df_numeric = df.drop(columns=["Company"])
+
+        # Normalize the data
+        scaler = StandardScaler()
+        df_scaled = scaler.fit_transform(df_numeric)
+
+        # Convert back to DataFrame
+        df_scaled = pd.DataFrame(df_scaled, columns=df_numeric.columns)
+        df_scaled.insert(0, "Company", df["Company"])  # Reinsert company names
+        df_scaled = df_scaled.dropna()
+        # Set number of clusters (can be adjusted)
+        # Typically, 3-5 clusters work well for comps
+        kmeans = KMeans(n_clusters=k, random_state=42)
+
+        # Fit K-Means
+        df_scaled["Cluster"] = kmeans.fit_predict(df_scaled.drop(columns=["Company"]))
+        target_cluster = df_scaled[df_scaled["Company"] == target_stock]["Cluster"].values[0]
+        comparable_companies = df_scaled[df_scaled["Cluster"] == target_cluster]["Company"].tolist()
+        comparable_companies.remove(target_stock)
+        st.markdown('## Comparable Companies')
+        st.dataframe(pd.DataFrame(comparable_companies))
+    
+    
 #topbar()
 st.markdown("---")
     
 with st.sidebar:
     selected = option_menu(
         menu_title = None,
-        options = ['Portfolio Variance Calculator', 'DCF Model', 'Multiples Model'],
+        options = ['Portfolio Variance Calculator', 'DCF Model', 'Multiples Model', 'K Means Clustering'],
         orientation='vertical',
         icons = ['house', 'buildings', 'lock'])
 
@@ -446,6 +528,9 @@ if selected == 'DCF Model':
 
 if selected == 'Multiples Model':
     multiplesModel()
+    
+if selected == 'K Means Clustering':
+    k_means_clustering()
 
 
 
