@@ -2,16 +2,12 @@ from datetime import datetime
 import pandas as pd
 import streamlit as st
 import yfinance as yf
-import plotly_express  as px
 import plotly.graph_objects as go
-import requests
 from streamlit_option_menu import option_menu
 import math
-import random
-from dateutil.relativedelta import relativedelta
 import numpy as np
-import pyarrow as pa
-from pyarrow import parquet as pq
+
+
 from st_aggrid import GridOptionsBuilder, AgGrid, GridUpdateMode, DataReturnMode
 
 st.set_page_config(layout="wide")
