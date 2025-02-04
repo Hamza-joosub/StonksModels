@@ -528,7 +528,11 @@ def chatBot():
     st.markdown(f"Output:{result.stdout}")
     #st.markdown(f"Error:{result.stderr}")
     st.markdown('OK')
-    
+    result = subprocess.run("ollama serve &", shell=True, capture_output=True)
+    st.markdown(f"Output:{result.stdout}")
+    st.markdown('OK')
+    result = subprocess.run("ollama run mistral 'What is machine learning?'", shell=True, capture_output=True)
+    st.markdown(f"Output:{result.stdout}")
     
 
     
