@@ -9,6 +9,7 @@ import numpy as np
 import sklearn.preprocessing
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
+import subprocess
 
 st.set_page_config(layout="wide")
 
@@ -112,7 +113,7 @@ def dcfModel():
     income_stmnt_Metrics = income_stmnt.columns.to_list()
     balance_sheet_stmnt_Metrics = balance_sheet_stmnt.columns.to_list()
     all_metrics = cash_flow_stmnt_Metrics+income_stmnt_Metrics+balance_sheet_stmnt_Metrics
-    
+    st.dataframe(cash_flow_stmnt)
     
     metric_name = st.selectbox('Select Line Item to Plot', options=all_metrics, placeholder='Select Line Item')
     if metric_name in cash_flow_stmnt_Metrics:
@@ -126,11 +127,15 @@ def dcfModel():
         metric_growth = metric_growth.astype('string') + " %"
         metric_list_form = cash_flow_stmnt[metric_name].dropna().to_list()
         cagr = (metric_list_form[0]/metric_list_form[-1])**(1/len(metric_list_form))-1
+        if isinstance(cagr, complex):
+            cagr = cagr
+        else:
+            cagr = round(cagr*100,2)
         meric_ot_fig = go.Figure()
         meric_ot_fig.add_traces(go.Bar(x = cash_flow_stmnt.index,y = cash_flow_stmnt[metric_name], text=metric_growth, marker_color='salmon'))
         meric_ot_fig.update_xaxes(title_text = 'Date')
         meric_ot_fig.update_yaxes(title_text = metric_name)
-        meric_ot_fig.update_layout(title_text=f'{metric_name} Over Time with CAGR: {round(cagr*100,2)} %')
+        meric_ot_fig.update_layout(title_text=f'{metric_name} Over Time with CAGR: {cagr} %')
     elif metric_name in income_stmnt_Metrics:   
         metric_no_na = income_stmnt[metric_name]
         metric_no_na = metric_no_na.dropna()
@@ -142,11 +147,15 @@ def dcfModel():
         metric_growth = metric_growth.astype('string') + " %"
         metric_list_form = income_stmnt[metric_name].dropna().to_list()
         cagr = (metric_list_form[0]/metric_list_form[-1])**(1/len(metric_list_form))-1
+        if isinstance(cagr, complex):
+            cagr = cagr
+        else:
+            cagr = round(cagr*100,2)
         meric_ot_fig = go.Figure()
         meric_ot_fig.add_traces(go.Bar(x = income_stmnt.index,y = income_stmnt[metric_name], text=metric_growth, marker_color='salmon'))
         meric_ot_fig.update_xaxes(title_text = 'Date')
         meric_ot_fig.update_yaxes(title_text = metric_name)
-        meric_ot_fig.update_layout(title_text=f'{metric_name} Over Time With CAGR {round(cagr*100,2)} %')
+        meric_ot_fig.update_layout(title_text=f'{metric_name} Over Time With CAGR {cagr} %')
     else:
         metric_no_na = balance_sheet_stmnt[metric_name]
         metric_no_na = metric_no_na.dropna()
@@ -158,11 +167,15 @@ def dcfModel():
         metric_growth = metric_growth.astype('string') + " %"
         metric_list_form = balance_sheet_stmnt[metric_name].dropna().to_list()
         cagr = (metric_list_form[0]/metric_list_form[-1])**(1/len(metric_list_form))-1
+        if isinstance(cagr, complex):
+            cagr = cagr
+        else:
+            cagr = round(cagr*100,2)
         meric_ot_fig = go.Figure()
         meric_ot_fig.add_traces(go.Bar(x = balance_sheet_stmnt.index,y = balance_sheet_stmnt[metric_name], text=metric_growth, marker_color='salmon'))
         meric_ot_fig.update_xaxes(title_text = 'Date')
         meric_ot_fig.update_yaxes(title_text = metric_name)
-        meric_ot_fig.update_layout(title_text=f'{metric_name} Over Time With CAGR: {round(cagr*100,2)} %')
+        meric_ot_fig.update_layout(title_text=f'{metric_name} Over Time With CAGR: {cagr} %')
         
     st.plotly_chart(meric_ot_fig)
 
@@ -507,14 +520,17 @@ def k_means_clustering():
         st.markdown('## Comparable Companies')
         st.dataframe(pd.DataFrame(comparable_companies))
     
-    
+def chatBot():
+    subprocess.run("echo 'Hello from Bash!'", shell=True)
+    subprocess.run("curl -fsSL https://ollama.com/install.sh | sh", shell=True)
+    st.markdown('we Up')
 #topbar()
 st.markdown("---")
     
 with st.sidebar:
     selected = option_menu(
         menu_title = None,
-        options = ['Portfolio Variance Calculator', 'DCF Model', 'Multiples Model', 'K Means Clustering'],
+        options = ['Portfolio Variance Calculator', 'DCF Model', 'Multiples Model', 'K Means Clustering', 'Chatbot'],
         orientation='vertical',
         icons = ['house', 'buildings', 'lock'])
 
@@ -531,6 +547,9 @@ if selected == 'Multiples Model':
     
 if selected == 'K Means Clustering':
     k_means_clustering()
+
+if selected == 'ChatBot':
+    chatBot()
 
 
 
