@@ -527,6 +527,7 @@ def chatBot():
     result = subprocess.run("curl -fsSL https://ollama.com/install.sh | sh", shell=True, capture_output=True)
     st.markdown(f"Output:{result.stdout}")
     #st.markdown(f"Error:{result.stderr}")
+    st.markdown('OK')
     
     
 
