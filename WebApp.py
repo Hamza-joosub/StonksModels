@@ -183,7 +183,7 @@ def dcfModel():
     st.markdown("## Future Cash Flows")
     #Ask for Forecast Length
     n = st.number_input('Forecast Length', min_value=2, step=1)
-    
+    fcf_Growth_list = []
     cagr_toggle = st.toggle("Use CAGR Of FCF Instead", value=False)
     if cagr_toggle:
         cagr_fcf = st.number_input('Input CAGR Of Free Cash Flows', step=0.5)
@@ -195,7 +195,7 @@ def dcfModel():
           
             
     else:
-        fcf_Growth_list = []
+        
         for i in range(1,n+1):
                 temp_FCF_Growth = st.number_input(f'Free Cash Flow Growth Forecast {i}', step=0.5)
                 fcf_Growth_list.append(temp_FCF_Growth)
@@ -288,6 +288,30 @@ def dcfModel():
     else:
         status = 'Fairly Valued'
     st.markdown(f"## {name} is {status}")
+    
+    st.markdown("# Summary")
+    
+    if len(fcf_Growth_list) == 0:
+        user_prompt = f"This is a DCF Model to value {tickername}, The current free cash flow is: {cash_flow_stmnt['Free Cash Flow'].to_list()[0]}, The user inputted a {cagr_fcf} Compounded annual growth rate of FCF over the next {n} years, the terminal growth rate is {g*100}%,WACC is calulcated by CAPM where the risk free rate used is {risk_free_rate}%,The market return is the return of the {market_index_long_name} annaulised over {annualized_over} and the cost of debt is calculated and thus the WACC being: {round(wacc*100,2)},The intrinsic value of the share is calculated as {iv}. Here are the previous years cash flow for {tickername}: {cash_flow_stmnt['Free Cash Flow'].to_list()}. Give an in depth analysis of the Model, Provide feedback if changes of any inputs are needed"
+
+    if st.button("Generate Response"):
+        payload = {
+            "model": "llama3",
+            "prompt": user_prompt,
+            "stream": False
+        }
+
+        try:
+            response = requests.post(OLLAMA_API_URL, json=payload)
+
+            if response.status_code == 200:
+                st.markdown("### 🤖 Ollama Response:")
+                st.markdown(response.json()["response"])
+            else:
+                st.error(f"❌ API Error: {response.status_code}")
+
+        except requests.exceptions.ConnectionError:
+            st.error("❌ Ollama server is not reachable. Make sure it is running.")
 
 def multiplesModel():
     stock_list_pd = pd.read_pickle("StockList")
@@ -441,6 +465,29 @@ def multiplesModel():
     st.markdown(f"### Average of All Valuations:$ {round(((valuation1+valuation2+valuation3+valuation4)/(4)),2)}")
     st.markdown(f'### Current Price: ${ticker.info.get('currentPrice')}')
     
+    st.markdown("# Summary")
+     
+    user_prompt = f"This is a mutliples Evaluation Model, Here is a csv of data with the target company: {target_ticker_string} and the list of comparable companies {comparables_tickers}, This is the string Of the various companies and there multiples: {multiples_df.to_string()}. Here is the valuation using Forward PE: {round(valuation1,2)}, Here is the valuation using Trailing PE: {round(valuation2,2)}, Here is the Valuation using EV to Revenue: {round(valuation3,2)}, here is the value using EV to EBITDA: {round(valuation4,2)}, give me an interpretation of {target_ticker_string} and whether it is a buy or sell based on its multiples compared to competitors. You may also critic whether the companies being compared to are legitimate as well the multiples.Round all numbers to 2 decimal places. Keep in Mind you are integrated into a website right now so try not to use any first person words, pretty much present it as if it were being published in a journal, not introductions are needed. Be as in depth as possible. If Multiple is Higher than another do explain what it means for example if ev/ebitda is higher and pe is lower then it may mean debt is a signficant factor in the company"
+
+    if st.button("Generate Response"):
+        payload = {
+            "model": "llama3",
+            "prompt": user_prompt,
+            "stream": False
+        }
+
+        try:
+            response = requests.post(OLLAMA_API_URL, json=payload)
+
+            if response.status_code == 200:
+                st.markdown("### 🤖 Ollama Response:")
+                st.markdown(response.json()["response"])
+            else:
+                st.error(f"❌ API Error: {response.status_code}")
+
+        except requests.exceptions.ConnectionError:
+            st.error("❌ Ollama server is not reachable. Make sure it is running.")
+    
 def k_means_clustering():
     url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
     sp500_table = pd.read_html(url)[0]  # First table contains S&P 500 tickers
@@ -544,8 +591,6 @@ def start_ollama():
     """Start Ollama server if not running."""
     if not check_ollama_running():
         st.markdown("🔄 Starting Ollama server...")
-        #subprocess.run('curl -fsSL https://ollama.com/install.sh | sh')
-        subprocess.run("'curl -fsSL https://ollama.com/install.sh | sh'", shell=True)
         subprocess.Popen(["ollama", "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(5)  # Give some time for the server to start
         if check_ollama_running():
@@ -556,7 +601,7 @@ def start_ollama():
         st.success("✅ Ollama is already running.")
 
 def chatBot():
-    st.markdown("# 🤖 Eish - AI Chatbot")
+    st.markdown("# ChatBot")
 
     # Ensure Ollama is running
     start_ollama()
@@ -566,7 +611,7 @@ def chatBot():
 
     if st.button("Generate Response"):
         payload = {
-            "model": "mistral",
+            "model": "deepseek-r1",
             "prompt": user_prompt,
             "stream": False
         }
@@ -576,7 +621,7 @@ def chatBot():
 
             if response.status_code == 200:
                 st.markdown("### 🤖 Ollama Response:")
-                st.write(response.json()["response"])
+                st.markdown(response.json()["response"])
             else:
                 st.error(f"❌ API Error: {response.status_code}")
 
@@ -586,7 +631,7 @@ def chatBot():
 with st.sidebar:
     selected = option_menu(
         menu_title = 'Models',
-        options = ['Portfolio Variance Calculator', 'DCF Model', 'Multiples Model', 'K Means Clustering', 'ChatBot'],
+        options = ['Portfolio Variance Calculator', 'DCF Model', 'Multiples Model', 'K Means Clustering', 'ChatBot(Only Works Locally)'],
         orientation='vertical',
         icons = ['house', 'buildings', 'lock', 'buildings','buildings' ])
 
@@ -602,7 +647,7 @@ if selected == 'Multiples Model':
 if selected == 'K Means Clustering':
     k_means_clustering()
 
-if selected == 'ChatBot':
+if selected == 'ChatBot(Only Works Locally)':
     chatBot()
 
 
