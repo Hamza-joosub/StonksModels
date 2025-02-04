@@ -10,6 +10,7 @@ import sklearn.preprocessing
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 import subprocess
+import time
 
 st.set_page_config(layout="wide")
 
@@ -480,6 +481,7 @@ def k_means_clustering():
                 loading.progress(progress)
             except Exception as e:
                 print(f"Error fetching data for {ticker}: {e}")
+            time.sleep(0.5)
 
         # Convert to DataFrame
         df = pd.DataFrame(data, columns=['Company', 'Market Cap', 'Rev Growth', 'NI Growth', 'EV/EBITDA', 'EV/Rev', 'EBITDA Margin', 'Operating Margin', 'Debt/Equity', 'PE', 'ROE','ROA'])
@@ -521,21 +523,21 @@ def k_means_clustering():
         st.dataframe(pd.DataFrame(comparable_companies))
     
 def chatBot():
-    subprocess.run("echo 'Hello from Bash!'", shell=True)
-    subprocess.run("curl -fsSL https://ollama.com/install.sh | sh", shell=True)
-    st.markdown('we Up')
-#topbar()
-st.markdown("---")
+    st.markdown('# Eish')
+    result = subprocess.run("curl -fsSL https://ollama.com/install.sh | sh", shell=True, capture_output=True)
+    st.markdown(f"Output:{result.stdout}")
+    #st.markdown(f"Error:{result.stderr}")
+    
+    
+
     
 with st.sidebar:
     selected = option_menu(
-        menu_title = None,
-        options = ['Portfolio Variance Calculator', 'DCF Model', 'Multiples Model', 'K Means Clustering', 'Chatbot'],
+        menu_title = 'Models',
+        options = ['Portfolio Variance Calculator', 'DCF Model', 'Multiples Model', 'K Means Clustering', 'ChatBot'],
         orientation='vertical',
-        icons = ['house', 'buildings', 'lock'])
+        icons = ['house', 'buildings', 'lock', 'buildings','buildings' ])
 
-#if selected == 'Screener':
-    #screener()
 if selected == 'Portfolio Variance Calculator':
     risk_analysis()
     
