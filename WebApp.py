@@ -544,6 +544,8 @@ def start_ollama():
     """Start Ollama server if not running."""
     if not check_ollama_running():
         st.markdown("🔄 Starting Ollama server...")
+        #subprocess.run('curl -fsSL https://ollama.com/install.sh | sh')
+        subprocess.run("'curl -fsSL https://ollama.com/install.sh | sh'", shell=True)
         subprocess.Popen(["ollama", "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(5)  # Give some time for the server to start
         if check_ollama_running():
