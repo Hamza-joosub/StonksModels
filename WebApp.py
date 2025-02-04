@@ -11,7 +11,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 import subprocess
 import time
-
+import requests
 st.set_page_config(layout="wide")
 
 key = "6ulfs8VItWZcKZTMzNJxwmikpQvSF1cI"
@@ -522,19 +522,64 @@ def k_means_clustering():
         st.markdown('## Comparable Companies')
         st.dataframe(pd.DataFrame(comparable_companies))
     
-def chatBot():
-    st.markdown('# Eish')
-    result = subprocess.run("curl -fsSL https://ollama.com/install.sh | sh", shell=True, capture_output=True)
-    st.markdown(f"Output:{result.stdout}")
-    #st.markdown(f"Error:{result.stderr}")
-    st.markdown('OK')
-    result = subprocess.run("ollama serve &", shell=True, capture_output=True)
-    st.markdown(f"Output:{result.stdout}")
-    st.markdown('OK')
-    result = subprocess.run("ollama run mistral 'What is machine learning?'", shell=True, capture_output=True)
-    st.markdown(f"Output:{result.stdout}")
-    
+import streamlit as st
+import subprocess
+import requests
+import time
+import os
 
+OLLAMA_API_URL = "http://127.0.0.1:11434/api/generate"
+
+def check_ollama_running():
+    """Check if Ollama is already running."""
+    try:
+        response = requests.get("http://127.0.0.1:11434/api/tags", timeout=2)
+        if response.status_code == 200:
+            return True
+    except requests.exceptions.RequestException:
+        return False
+    return False
+
+def start_ollama():
+    """Start Ollama server if not running."""
+    if not check_ollama_running():
+        st.markdown("🔄 Starting Ollama server...")
+        subprocess.Popen(["ollama", "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(5)  # Give some time for the server to start
+        if check_ollama_running():
+            st.success("✅ Ollama is now running!")
+        else:
+            st.error("❌ Failed to start Ollama.")
+    else:
+        st.success("✅ Ollama is already running.")
+
+def chatBot():
+    st.markdown("# 🤖 Eish - AI Chatbot")
+
+    # Ensure Ollama is running
+    start_ollama()
+
+    # User Input
+    user_prompt = st.text_area("Ask something:", "Explain the CAPM model in finance.")
+
+    if st.button("Generate Response"):
+        payload = {
+            "model": "mistral",
+            "prompt": user_prompt,
+            "stream": False
+        }
+
+        try:
+            response = requests.post(OLLAMA_API_URL, json=payload)
+
+            if response.status_code == 200:
+                st.markdown("### 🤖 Ollama Response:")
+                st.write(response.json()["response"])
+            else:
+                st.error(f"❌ API Error: {response.status_code}")
+
+        except requests.exceptions.ConnectionError:
+            st.error("❌ Ollama server is not reachable. Make sure it is running.")
     
 with st.sidebar:
     selected = option_menu(
