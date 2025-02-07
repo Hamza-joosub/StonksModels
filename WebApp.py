@@ -14,9 +14,13 @@ import time
 import requests
 import os
 from stqdm import stqdm
+from sklearn.manifold import TSNE
 st.set_page_config(layout="wide")
+OLLAMA_API_URL = "http://127.0.0.1:11434/api/generate"
+multiples_df = []
 
-key = "6ulfs8VItWZcKZTMzNJxwmikpQvSF1cI"
+
+
 
 def Calc_correlation_Matrix(Tickers, Start, End, Interval):
     portfolio_tickers = Tickers
@@ -489,15 +493,174 @@ def multiplesModel():
 
         except requests.exceptions.ConnectionError:
             st.error("❌ Ollama server is not reachable. Make sure it is running.")
-    
+
 def k_means_clustering():
     st.markdown("# KMeans Clustering")
-    for i in stqdm(range(0,5)):
-        time.sleep(2)
+        
+    if st.button("Load Data", ) or st.session_state.load_data_Multiples_button == True:
+        st.session_state.load_data_Multiples_button = True
+        url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+        sp500_table = pd.read_html(url)[0]  # First table contains S&P 500 tickers
+
+        # Keep only the columns of interest
+        sp500_table = sp500_table[["Symbol"]]
+        sp500_list = sp500_table['Symbol'].to_list()
+
+        data = []
+        st.markdown("Loading Data...")
+        st.markdown(sp500_list)
+        for ticker in stqdm(sp500_list):
+            stock = yf.Ticker(ticker)
+            
+            # Extract relevant financial metrics
+            try:
+                market_cap = stock.info["marketCap"]
+                revenue_growth = stock.info.get("revenueGrowth", None)
+                earningsGrowth = stock.info.get("earningsGrowth", None)
+                enterpriseToEbitda = stock.info.get("earningsGrowth", None)
+                enterpriseToRevenue  = stock.info.get("earningsGrowth", None)
+                ebitda_margin = stock.info.get("ebitdaMargins", None)
+                operatingMargins = stock.info.get("operatingMargins", None)
+                de = stock.info.get("debtToEquity", None)
+                pe = stock.info.get("trailingPE", None)
+                roe = stock.info.get("returnOnEquity", None)
+                roa = stock.info.get("returnOnAssets", None)
+                industry = stock.info.get("industryKey", None)
+                sector = stock.info.get("sectorKey", None)
+                longname = stock.info.get("longName", None)
+                
+                data.append([ticker,market_cap,revenue_growth,earningsGrowth,enterpriseToEbitda,enterpriseToRevenue,ebitda_margin,operatingMargins,de, pe, roe,roa,industry,sector, longname ])
+                st.markdown("Loaded Something")
+            except Exception as e:
+                print(f"Error fetching data for {ticker}: {e}")
+                
+        st.markdown("Data Loaded")
+        df = pd.DataFrame(data, columns=['Company', 'Market Cap', 'Rev Growth', 'NI Growth', 'EV/EBITDA', 'EV/Rev', 'EBITDA Margin', 'Operating Margin', 'Debt/Equity', 'PE', 'ROE','ROA', 'Industry', 'Sector', 'Name'])
+        multiples_df = df
+        st.markdown("FuKN")
+        df_no_nan = multiples_df.dropna()
+        df_no_nan = df_no_nan.reset_index(drop=True)
+        df_numeric = df_no_nan.drop(columns=["Company", "Industry", "Sector", "Name"])
+        scaler = StandardScaler()
+        np_scaled = scaler.fit_transform(df_numeric)
+        df_scaled = pd.DataFrame(np_scaled,columns=df_numeric.columns)
+        df_scaled.insert(0, "Industry", df_no_nan["Industry"])
+        df_scaled.insert(0, "Sector", df_no_nan["Sector"])
+        df_scaled.insert(0, "Name", df_no_nan["Name"])
+        df_scaled.insert(0, "Company", df_no_nan["Company"])
+        for feature in df_scaled.columns.to_list()[4:]: 
+            df_scaled_no_outliers = df_scaled.drop(df_scaled[df_scaled[feature] > 2].index)
+        df_scaled_no_outliers = df_scaled_no_outliers.reset_index(drop=True)
+        df_scaled_no_outliers_numeric = df_scaled_no_outliers.drop(columns=["Company", "Industry", "Sector", "Name"])
+        inertia_list = []
+        for k in range(3,100):
+            kmeans = KMeans(n_clusters=k)
+            kmeans.fit(df_scaled_no_outliers_numeric)
+            inertia_list.append(kmeans.inertia_)
+        inertia_df = pd.DataFrame(inertia_list)
+        inertia_fig = go.Figure()
+        inertia_fig.add_trace(go.Scatter(x = inertia_df.index, y =inertia_df[0] ))
+        st.plotly_chart(inertia_fig)
+        
+        k = st.number_input("Enter Number of Clusters", min_value=2, step=1)
+        if st.button("Confirm Cluster Count") or st.session_state.insert_k_clusters_button == True:
+            st.session_state.insert_k_clusters_button = True
+            labels = KMeans(n_clusters=k).fit_predict(df_scaled_no_outliers_numeric)
+            df_scaled_no_outliers_numeric["Cluster"] = labels
+            df_scaled_no_outliers_numeric.insert(0,"Sector", df_scaled_no_outliers["Sector"])
+            df_scaled_no_outliers_numeric.insert(0,"Industry", df_scaled_no_outliers["Industry"])
+            df_scaled_no_outliers_numeric.insert(0,"Name", df_scaled_no_outliers["Name"])
+            df_scaled_no_outliers_numeric.insert(0,"Company", df_scaled_no_outliers["Company"])
+            df_final = df_scaled_no_outliers_numeric
+            
+            target_stock = st.selectbox("Enter Stock",options=df_final['Company'].to_list())
+            if st.button("Confirm") or st.session_state.insert_target_stock_Clustering == True:
+                st.session_state.insert_target_stock_Clustering = True
+                target_cluster = df_final[df_final["Company"] == target_stock]["Cluster"].values[0]
+                target_sector = df_final[df_final["Company"] == target_stock]["Sector"].values[0]
+                target_industry = df_final[df_final["Company"] == target_stock]["Industry"].values[0]
+                comparable_Companies_list = df_final[df_final["Cluster"]==target_cluster]["Company"].to_list()
+                comparable_Sectors_list = df_final[df_final["Cluster"]==target_cluster]["Sector"].to_list()
+                comparable_Industries_list = df_final[df_final["Cluster"]==target_cluster]["Industry"].to_list()
+                comparable_Names_list = df_final[df_final["Cluster"]==target_cluster]["Name"].to_list()
+                comparables_df = pd.DataFrame()
+                comparables_df["Company"] = comparable_Companies_list
+                comparables_df["Name"] = comparable_Names_list
+                comparables_df["Sector"] = comparable_Sectors_list
+                comparables_df["Industry"] = comparable_Industries_list
+                st.markdown("## Same Cluster")
+                st.dataframe(comparables_df[comparables_df["Sector"] == target_sector])
+                st.markdown("## Same Cluster and Sector")
+                st.dataframe(comparables_df[comparables_df["Sector"] == target_sector])
+                st.markdown("## Same Cluster and Sector and Industry")
+                st.dataframe(comparables_df[comparables_df["Industry"] == target_industry])
+                st.markdown("## Same Sector")
+                st.dataframe(df_no_nan[df_no_nan['Sector'] == target_sector].loc[:,['Company', 'Name', 'Sector','Industry' ]])
+                st.markdown("## Same Industry")
+                st.dataframe(df_no_nan[df_no_nan['Industry'] == target_industry].loc[:,['Company', 'Name', 'Sector','Industry' ]])
+                st.markdown("## Cluster Visualisation")
+                tsne = TSNE(n_components=3, perplexity=30, random_state=42)
+                tsne_result = tsne.fit_transform(df_scaled_no_outliers_numeric.drop(columns=["Company", "Industry", "Sector", "Name", "Cluster"]))
+                df_tsne = pd.DataFrame(tsne_result, columns=["tSNE1", "tSNE2", 'tSNE3'])
+                df_tsne['Cluster'] = df_final["Cluster"]
+                df_tsne['Company'] = df_final["Company"]
+                tsne_fig = go.Figure()
+                for cluster in df_tsne["Cluster"].unique():
+                    
+                    cluster_data = df_tsne[df_tsne["Cluster"] == cluster]
+                    tsne_fig.add_trace(go.Scatter3d(x = cluster_data['tSNE1'], y = cluster_data['tSNE2'],z =cluster_data['tSNE3'] , name=f"Cluster: {cluster}", mode = 'markers',), )
+                    tsne_fig.update_traces(marker={'size': 3,})
+                    tsne_fig.update_layout(
+                    autosize=False,
+                    width=900,
+                    height=600,
+                )
+                st.plotly_chart(tsne_fig)
+
+def screener():
+    st.dataframe(load_global_multiples_df())
     
+def load_global_multiples_df():
+    url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+    sp500_table = pd.read_html(url)[0]  # First table contains S&P 500 tickers
 
+    # Keep only the columns of interest
+    sp500_table = sp500_table[["Symbol"]]
+    sp500_list = sp500_table['Symbol'].to_list()
 
-OLLAMA_API_URL = "http://127.0.0.1:11434/api/generate"
+    data = []
+    progress = 0
+    progress_bar = st.progress(0)
+    st.markdown("Loading Data...")
+    for ticker in stqdm(sp500_list):
+        stock = yf.Ticker(ticker)
+        
+        # Extract relevant financial metrics
+        try:
+            market_cap = stock.info["marketCap"]
+            revenue_growth = stock.info.get("revenueGrowth", None)
+            earningsGrowth = stock.info.get("earningsGrowth", None)
+            enterpriseToEbitda = stock.info.get("earningsGrowth", None)
+            enterpriseToRevenue  = stock.info.get("earningsGrowth", None)
+            ebitda_margin = stock.info.get("ebitdaMargins", None)
+            operatingMargins = stock.info.get("operatingMargins", None)
+            de = stock.info.get("debtToEquity", None)
+            pe = stock.info.get("trailingPE", None)
+            roe = stock.info.get("returnOnEquity", None)
+            roa = stock.info.get("returnOnAssets", None)
+            industry = stock.info.get("industryKey", None)
+            sector = stock.info.get("sectorKey", None)
+            longname = stock.info.get("longName", None)
+            
+            data.append([ticker,market_cap,revenue_growth,earningsGrowth,enterpriseToEbitda,enterpriseToRevenue,ebitda_margin,operatingMargins,de, pe, roe,roa,industry,sector, longname ])
+            progress = progress+(1/len(sp500_list))
+            progress_bar.progress(progress)
+            st.markdown("Doing STuff rn")
+        except Exception as e:
+            print(f"Error fetching data for {ticker}: {e}")
+    st.markdown("Data Loaded")
+    df = pd.DataFrame(data, columns=['Company', 'Market Cap', 'Rev Growth', 'NI Growth', 'EV/EBITDA', 'EV/Rev', 'EBITDA Margin', 'Operating Margin', 'Debt/Equity', 'PE', 'ROE','ROA', 'Industry', 'Sector', 'Name'])
+    return df
 
 def check_ollama_running():
     """Check if Ollama is already running."""
@@ -522,38 +685,11 @@ def start_ollama():
     else:
         st.success("✅ Ollama is already running.")
 
-def chatBot():
-    st.markdown("# ChatBot")
-
-    # Ensure Ollama is running
-    start_ollama()
-
-    # User Input
-    user_prompt = st.text_area("Ask something:", "Explain the CAPM model in finance.")
-
-    if st.button("Generate Response"):
-        payload = {
-            "model": "deepseek-r1",
-            "prompt": user_prompt,
-            "stream": False
-        }
-
-        try:
-            response = requests.post(OLLAMA_API_URL, json=payload)
-
-            if response.status_code == 200:
-                st.markdown("### 🤖 Ollama Response:")
-                st.markdown(response.json()["response"])
-            else:
-                st.error(f"❌ API Error: {response.status_code}")
-
-        except requests.exceptions.ConnectionError:
-            st.error("❌ Ollama server is not reachable. Make sure it is running.")
-    
+     
 with st.sidebar:
     selected = option_menu(
         menu_title = 'Models',
-        options = ['Portfolio Variance Calculator', 'DCF Model', 'Multiples Model', 'K Means Clustering', 'ChatBot(Only Works Locally)'],
+        options = ['Portfolio Variance Calculator', 'DCF Model', 'Multiples Model', 'K Means Clustering', 'Screener'],
         orientation='vertical',
         icons = ['house', 'buildings', 'lock', 'buildings','buildings' ])
 
@@ -567,10 +703,23 @@ if selected == 'Multiples Model':
     multiplesModel()
     
 if selected == 'K Means Clustering':
+    if 'load_data_Multiples_button' not in st.session_state:
+        st.session_state.load_data_Multiples_button = False
+    
+    if 'insert_k_clusters_button' not in st.session_state:
+        st.session_state.insert_k_clusters_button = False
+    
+    if 'insert_target_stock_Clustering' not in st.session_state:
+        st.session_state.insert_target_stock_Clustering = False
+    st.session_state.load_data_Multiples_button = False
+    st.session_state.insert_k_clusters_button = False
+    st.session_state.insert_target_stock_Clustering = False
     k_means_clustering()
 
-if selected == 'ChatBot(Only Works Locally)':
-    chatBot()
+if selected == 'Screener':
+        screener(multiples_df)
+
+
 
 
 

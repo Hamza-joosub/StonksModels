@@ -5,3 +5,5 @@ streamlit_option_menu
 streamlit-aggrid
 investpy
 scikit-learn
+stqdm
+streamlit_extras
