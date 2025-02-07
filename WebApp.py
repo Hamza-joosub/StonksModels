@@ -12,6 +12,8 @@ from sklearn.cluster import KMeans
 import subprocess
 import time
 import requests
+import os
+from stqdm import stqdm
 st.set_page_config(layout="wide")
 
 key = "6ulfs8VItWZcKZTMzNJxwmikpQvSF1cI"
@@ -489,91 +491,11 @@ def multiplesModel():
             st.error("❌ Ollama server is not reachable. Make sure it is running.")
     
 def k_means_clustering():
-    url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
-    sp500_table = pd.read_html(url)[0]  # First table contains S&P 500 tickers
-
-    # Keep only the columns of interest
-    sp500_table = sp500_table[["Symbol"]]
-    sp500_list = sp500_table['Symbol'].to_list()
-
-    target_stock = st.selectbox('Select Target Stock', options=sp500_list)
+    st.markdown("# KMeans Clustering")
+    for i in stqdm(range(0,5)):
+        time.sleep(2)
     
-    k = int(st.number_input('Enter Number of Clusters', min_value=2, step=1))
-    ok = st.button("Cluster")
-    loading = st.progress(0)
-    
-    if ok:
-        data = []
-        progress = 0
-        st.markdown("Loading Data...")
-        for ticker in sp500_list:
-            stock = yf.Ticker(ticker)
-            
-            # Extract relevant financial metrics
-            try:
-                market_cap = stock.info["marketCap"]
-                revenue_growth = stock.info.get("revenueGrowth", None)
-                earningsGrowth = stock.info.get("earningsGrowth", None)
-                enterpriseToEbitda = stock.info.get("earningsGrowth", None)
-                enterpriseToRevenue  = stock.info.get("earningsGrowth", None)
-                ebitda_margin = stock.info.get("ebitdaMargins", None)
-                operatingMargins = stock.info.get("operatingMargins", None)
-                de = stock.info.get("debtToEquity", None)
-                pe = stock.info.get("trailingPE", None)
-                roe = stock.info.get("returnOnEquity", None)
-                roa = stock.info.get("returnOnAssets", None)
-                
-                data.append([ticker,market_cap,revenue_growth,earningsGrowth,enterpriseToEbitda,enterpriseToRevenue,ebitda_margin,operatingMargins,de, pe, roe,roa])
-                progress = progress+(1/len(sp500_list))
-                loading.progress(progress)
-            except Exception as e:
-                print(f"Error fetching data for {ticker}: {e}")
-            time.sleep(0.5)
 
-        # Convert to DataFrame
-        df = pd.DataFrame(data, columns=['Company', 'Market Cap', 'Rev Growth', 'NI Growth', 'EV/EBITDA', 'EV/Rev', 'EBITDA Margin', 'Operating Margin', 'Debt/Equity', 'PE', 'ROE','ROA'])
-        df_no_nan = df.dropna()
-
-
-        # Drop non-numeric columns
-        df_numeric = df.drop(columns=["Company"])
-
-        # Normalize the data
-        scaler = StandardScaler()
-        df_scaled = scaler.fit_transform(df_numeric)
-
-        # Convert back to DataFrame
-        df_scaled = pd.DataFrame(df_scaled, columns=df_numeric.columns)
-        df_scaled.insert(0, "Company", df["Company"])  # Reinsert company names
-        df_scaled = df_scaled.dropna()
-        # Drop non-numeric columns
-        df_numeric = df.drop(columns=["Company"])
-
-        # Normalize the data
-        scaler = StandardScaler()
-        df_scaled = scaler.fit_transform(df_numeric)
-
-        # Convert back to DataFrame
-        df_scaled = pd.DataFrame(df_scaled, columns=df_numeric.columns)
-        df_scaled.insert(0, "Company", df["Company"])  # Reinsert company names
-        df_scaled = df_scaled.dropna()
-        # Set number of clusters (can be adjusted)
-        # Typically, 3-5 clusters work well for comps
-        kmeans = KMeans(n_clusters=k, random_state=42)
-
-        # Fit K-Means
-        df_scaled["Cluster"] = kmeans.fit_predict(df_scaled.drop(columns=["Company"]))
-        target_cluster = df_scaled[df_scaled["Company"] == target_stock]["Cluster"].values[0]
-        comparable_companies = df_scaled[df_scaled["Cluster"] == target_cluster]["Company"].tolist()
-        comparable_companies.remove(target_stock)
-        st.markdown('## Comparable Companies')
-        st.dataframe(pd.DataFrame(comparable_companies))
-    
-import streamlit as st
-import subprocess
-import requests
-import time
-import os
 
 OLLAMA_API_URL = "http://127.0.0.1:11434/api/generate"
 
