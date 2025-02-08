@@ -496,11 +496,20 @@ def k_means_clustering():
     multiples_df = multiples_df.drop(columns = ['Unnamed: 0'])
     k_inputted = st.number_input("Input Number of Clusters", min_value=2, step=1)
     target_stock = st.selectbox("Enter Stock",options=multiples_df['Company'].to_list())
+    metrics = multiples_df.columns.to_list()
+    metrics.remove('Company')
+    metrics.remove('Sector')
+    metrics.remove('Name')
+    metrics.remove('Industry')
+    multiples_to_cluster_on = st.multiselect("Select Metrics to Cluster on", options=metrics)
+    
         
     if st.button("Cluster") :
         df_no_nan = multiples_df.dropna()
         df_no_nan = df_no_nan.reset_index(drop=True)
         df_numeric = df_no_nan.drop(columns=["Company", "Industry", "Sector", "Name"])
+        metrics_to_drop = list(filter(lambda item: item not in multiples_to_cluster_on, df_numeric.columns.to_list()))
+        df_numeric = df_numeric.drop(columns=metrics_to_drop)
         scaler = StandardScaler()
         np_scaled = scaler.fit_transform(df_numeric)
         df_scaled = pd.DataFrame(np_scaled,columns=df_numeric.columns)
@@ -509,7 +518,7 @@ def k_means_clustering():
         df_scaled.insert(0, "Name", df_no_nan["Name"])
         df_scaled.insert(0, "Company", df_no_nan["Company"])
         for feature in df_scaled.columns.to_list()[4:]: 
-            df_scaled_no_outliers = df_scaled.drop(df_scaled[df_scaled[feature] > 2].index)
+            df_scaled_no_outliers = df_scaled.drop(df_scaled[df_scaled[feature] > 35].index)
         df_scaled_no_outliers = df_scaled_no_outliers.reset_index(drop=True)
         df_scaled_no_outliers_numeric = df_scaled_no_outliers.drop(columns=["Company", "Industry", "Sector", "Name"])
         inertia_list = []
@@ -530,7 +539,7 @@ def k_means_clustering():
         df_scaled_no_outliers_numeric.insert(0,"Name", df_scaled_no_outliers["Name"])
         df_scaled_no_outliers_numeric.insert(0,"Company", df_scaled_no_outliers["Company"])
         df_final = df_scaled_no_outliers_numeric
-        
+        st.dataframe(df_final)
         target_cluster = df_final[df_final["Company"] == target_stock]["Cluster"].values[0]
         target_sector = df_final[df_final["Company"] == target_stock]["Sector"].values[0]
         target_industry = df_final[df_final["Company"] == target_stock]["Industry"].values[0]
@@ -554,23 +563,44 @@ def k_means_clustering():
         st.markdown("## Same Industry")
         st.dataframe(df_no_nan[df_no_nan['Industry'] == target_industry].loc[:,['Company', 'Name', 'Sector','Industry' ]])
         st.markdown("## Cluster Visualisation")
-        tsne = TSNE(n_components=3, perplexity=30, random_state=42)
-        tsne_result = tsne.fit_transform(df_scaled_no_outliers_numeric.drop(columns=["Company", "Industry", "Sector", "Name", "Cluster"]))
-        df_tsne = pd.DataFrame(tsne_result, columns=["tSNE1", "tSNE2", 'tSNE3'])
-        df_tsne['Cluster'] = df_final["Cluster"]
-        df_tsne['Company'] = df_final["Company"]
-        tsne_fig = go.Figure()
-        for cluster in df_tsne["Cluster"].unique():
-            
-            cluster_data = df_tsne[df_tsne["Cluster"] == cluster]
-            tsne_fig.add_trace(go.Scatter3d(x = cluster_data['tSNE1'], y = cluster_data['tSNE2'],z =cluster_data['tSNE3'] , name=f"Cluster: {cluster}", mode = 'markers',), )
-            tsne_fig.update_traces(marker={'size': 3,})
-            tsne_fig.update_layout(
-            autosize=False,
-            width=900,
-            height=600,
-        )
-        st.plotly_chart(tsne_fig)
+        if len(multiples_to_cluster_on) == 1:
+            st.markdown("Not Enough Metrics to Cluster on")
+        elif len(multiples_to_cluster_on) == 2:
+            tsne = TSNE(n_components=2, perplexity=30, random_state=42)
+            tsne_result = tsne.fit_transform(df_scaled_no_outliers_numeric.drop(columns=["Company", "Industry", "Sector", "Name", "Cluster"]))
+            df_tsne = pd.DataFrame(tsne_result, columns=["tSNE1", "tSNE2"])
+            df_tsne['Cluster'] = df_final["Cluster"]
+            df_tsne['Company'] = df_final["Company"]
+            tsne_fig = go.Figure()
+            for cluster in df_tsne["Cluster"].unique():
+                
+                cluster_data = df_tsne[df_tsne["Cluster"] == cluster]
+                tsne_fig.add_trace(go.Scatter(x = cluster_data['tSNE1'], y = cluster_data['tSNE2'] , name=f"Cluster: {cluster}", mode = 'markers',), )
+                tsne_fig.update_traces(marker={'size': 3,})
+                tsne_fig.update_layout(
+                autosize=False,
+                width=900,
+                height=600,
+            )
+            st.plotly_chart(tsne_fig)
+        else:
+            tsne = TSNE(n_components=3, perplexity=30, random_state=42)
+            tsne_result = tsne.fit_transform(df_scaled_no_outliers_numeric.drop(columns=["Company", "Industry", "Sector", "Name", "Cluster"]))
+            df_tsne = pd.DataFrame(tsne_result, columns=["tSNE1", "tSNE2", 'tSNE3'])
+            df_tsne['Cluster'] = df_final["Cluster"]
+            df_tsne['Company'] = df_final["Company"]
+            tsne_fig = go.Figure()
+            for cluster in df_tsne["Cluster"].unique():
+                
+                cluster_data = df_tsne[df_tsne["Cluster"] == cluster]
+                tsne_fig.add_trace(go.Scatter3d(x = cluster_data['tSNE1'], y = cluster_data['tSNE2'],z =cluster_data['tSNE3'] , name=f"Cluster: {cluster}", mode = 'markers',), )
+                tsne_fig.update_traces(marker={'size': 3,})
+                tsne_fig.update_layout(
+                autosize=False,
+                width=900,
+                height=600,
+            )
+            st.plotly_chart(tsne_fig)
     
 def screener():
     df = pd.read_csv("Multiples_Database.csv")
