@@ -603,10 +603,12 @@ def k_means_clustering():
             st.plotly_chart(tsne_fig)
     
 def screener():
+    st.markdown("# Screen")
     df = pd.read_csv("Multiples_Database.csv")
     df = df.drop(columns = ['Unnamed: 0'])
     df = df.set_index("Company")
-    st.dataframe(df,width=100, height=750)
+    st.dataframe(df,width=1000, height=750)
+    st.markdown("# Industry Summaru")
 
 def check_ollama_running():
     """Check if Ollama is already running."""
@@ -631,11 +633,71 @@ def start_ollama():
     else:
         st.success("✅ Ollama is already running.")
 
+def sector_screener():
+    st.markdown("# Sector Screener")
+    st.markdown("## Sector Metrics")
+    df = pd.read_csv("Multiples_Database.csv")
+    df = df.drop(columns = ['Unnamed: 0'])
+    df = df.dropna()
+    list_of_metrics = df.columns.to_list()
+    list_of_metrics.remove('Company')
+    list_of_metrics.remove('Industry')
+    list_of_metrics.remove('Sector')
+    list_of_metrics.remove('Name')
+    sectors = df['Sector'].unique().tolist()
+    sector_metrics = pd.DataFrame()
+    for metric in list_of_metrics:
+        temp_list = []
+        if metric == "Market Cap":
+            for sector in sectors:
+                temp_list.append(df[df['Sector']==sector][metric].sum())
+            sector_metrics['Total Market Cap'] = temp_list
+        else:
+            for sector in sectors:
+                temp_list.append(df[df['Sector']==sector][metric].mean())
+            sector_metrics[f'Average Sector: {metric}'] = temp_list
+    sector_metrics["Sector"] = sectors
+    sector_metrics = sector_metrics.set_index("Sector")
+    
+    metric_to_plot = st.selectbox("Select Metric To Plot", options=sector_metrics.columns.to_list())
+    sector_fig = go.Figure()
+    temp = sector_metrics.sort_values([metric_to_plot])
+    sector_fig.add_trace(go.Bar(x = temp[metric_to_plot], y = temp.index, orientation='h' ))
+    sector_fig.update_xaxes(title_text = f"{metric_to_plot}")
+    sector_fig.update_yaxes(title_text = f"Sector")
+    sector_fig.update_layout(
+                autosize=False,
+                width=1000,
+                height=600,
+            )
+    st.plotly_chart(sector_fig)
+    st.markdown("## Sector Performance")
+    lookback_period = st.number_input("Enter Lookback Period", min_value=2, max_value=1257, step=10)
+    sector_proxies = ['XLB', 'XLC', 'XLE', 'XLF', 'XLI', 'XLK', 'XLP', 'XLRE', 'XLU', 'XLV', 'XLY']
+    sector_proxies_names = ['Materials', 'Communications', 'Energy', 'Financials', 'Industrials', 'Technology', 'Consumer Staples', 'Real Estate', 'Utilities', 'Healthcare', 'Consumer Discretionary']
+    hm = yf.Tickers(sector_proxies)
+    df = hm.history(period='5y', interval='1d',auto_adjust=False)['Close']
+    performance_df = ((df.iloc[-1,:]-df.iloc[-lookback_period,:])/df.iloc[-lookback_period,:])*100
+    performance_df = pd.DataFrame(performance_df, columns=["Value", ])
+    performance_df["Name"] = sector_proxies_names
+    performance_fig = go.Figure()
+    temp = performance_df.sort_values(['Value'])
+    performance_fig.add_trace(go.Bar(x = temp['Value'], y = temp["Name"], orientation='h'))
+    performance_fig.update_xaxes(title_text = f"Performance over {lookback_period-1} Days")
+    performance_fig.update_yaxes(title_text = "Sector")
+    performance_fig.update_layout(
+                autosize=False,
+                width=1000,
+                height=600,
+            )
+    st.plotly_chart(performance_fig)
+    
+    
      
 with st.sidebar:
     selected = option_menu(
         menu_title = 'Models',
-        options = ['Portfolio Variance Calculator', 'DCF Model', 'Multiples Model', 'K Means Clustering', 'Screener'],
+        options = ['Portfolio Variance Calculator', 'DCF Model', 'Multiples Model', 'K Means Clustering', 'Screener', 'Sector Screener'],
         orientation='vertical',
         icons = ['house', 'buildings', 'lock', 'buildings','buildings' ])
 
@@ -653,6 +715,9 @@ if selected == 'K Means Clustering':
 
 if selected == 'Screener':
     screener()
+
+if selected == 'Sector Screener':
+    sector_screener()
 
 
 
