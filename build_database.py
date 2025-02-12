@@ -34,12 +34,15 @@ for ticker in tqdm(sp500_list):
         longname = stock.info.get("longName", None)
         beta = stock.info.get("beta", None)
         trailingPegRatio = stock.info.get("trailingPegRatio", None)
+        totalRevenue = stock.info.get("totalRevenue", None)
+        ebitda = stock.info.get("ebitda", None)
         
         
-        data.append([ticker,market_cap,revenue_growth,earningsGrowth,enterpriseToEbitda,enterpriseToRevenue,ebitda_margin,operatingMargins,de, trailling_pe, roe,roa,industry,sector, longname,beta,trailingPegRatio ])
+        
+        data.append([ticker,market_cap,revenue_growth,earningsGrowth,enterpriseToEbitda,enterpriseToRevenue,ebitda_margin,operatingMargins,de, trailling_pe, roe,roa,industry,sector, longname,beta,trailingPegRatio,totalRevenue,ebitda ])
         
         
     except Exception as e:
         print(f"Error fetching data for {ticker}: {e}")
-df = pd.DataFrame(data, columns=['Company', 'Market Cap', 'Rev Growth', 'NI Growth', 'EV/EBITDA', 'EV/Rev', 'EBITDA Margin', 'Operating Margin', 'Debt/Equity', 'PE', 'ROE','ROA', 'Industry', 'Sector', 'Name', 'Beta','Trailing PEG Ratio' ])
+df = pd.DataFrame(data, columns=['Company', 'Market Cap', 'Rev Growth', 'NI Growth', 'EV/EBITDA', 'EV/Rev', 'EBITDA Margin', 'Operating Margin', 'Debt/Equity', 'PE', 'ROE','ROA', 'Industry', 'Sector', 'Name', 'Beta','Trailing PEG Ratio', 'Revenue', 'EBITDA' ])
 df.to_csv("Multiples_Database")

@@ -96,7 +96,7 @@ def dcfModel():
     # Display Basic Info
     
     st.markdown(f'# {name}')
-    prices_df = ticker.history(start ='2020-01-01')['Close']
+    prices_df = ticker.history(start ='2020-01-01', auto_adjust=False)['Close']
     prices_df = prices_df.reset_index()
     stock_price_fig = go.Figure()
     stock_price_fig.add_trace(go.Scatter(x = prices_df['Date'], y=prices_df['Close']))
@@ -116,7 +116,7 @@ def dcfModel():
     income_stmnt_Metrics = income_stmnt.columns.to_list()
     balance_sheet_stmnt_Metrics = balance_sheet_stmnt.columns.to_list()
     all_metrics = cash_flow_stmnt_Metrics+income_stmnt_Metrics+balance_sheet_stmnt_Metrics
-    st.dataframe(cash_flow_stmnt)
+    st.dataframe(income_stmnt)
     
     metric_name = st.selectbox('Select Line Item to Plot', options=all_metrics, placeholder='Select Line Item')
     if metric_name in cash_flow_stmnt_Metrics:
@@ -387,6 +387,10 @@ def multiplesModel():
     multiples_df = pd.DataFrame()
     multiples_df['Multiple'] = multiples_list
     multiples_df = multiples_df.set_index('Multiple')
+    
+    comparables_tickers.pop(-1)
+    
+    
     for company in comparables_tickers:
         ticker = yf.Ticker(company)
         info = ticker.info
@@ -465,11 +469,21 @@ def multiplesModel():
     st.markdown(f'#### Valuation: ${round(valuation4,2)}')
     st.markdown("---")
     st.markdown(f"### Average of All Valuations:$ {round(((valuation1+valuation2+valuation3+valuation4)/(4)),2)}")
-    st.markdown(f'### Current Price: ${ticker.info.get('currentPrice')}')
+    st.markdown(f'### Current Price: ${ticker_obj.info.get('currentPrice')}')
     
     st.markdown("# Summary")
      
-    user_prompt = f"This is a mutliples Evaluation Model, Here is a csv of data with the target company: {target_ticker_string} and the list of comparable companies {comparables_tickers}, This is the string Of the various companies and there multiples: {multiples_df.to_string()}. Here is the valuation using Forward PE: {round(valuation1,2)}, Here is the valuation using Trailing PE: {round(valuation2,2)}, Here is the Valuation using EV to Revenue: {round(valuation3,2)}, here is the value using EV to EBITDA: {round(valuation4,2)}, give me an interpretation of {target_ticker_string} and whether it is a buy or sell based on its multiples compared to competitors. You may also critic whether the companies being compared to are legitimate as well the multiples.Round all numbers to 2 decimal places. Keep in Mind you are integrated into a website right now so try not to use any first person words, pretty much present it as if it were being published in a journal, not introductions are needed. Be as in depth as possible. If Multiple is Higher than another do explain what it means for example if ev/ebitda is higher and pe is lower then it may mean debt is a signficant factor in the company"
+    user_prompt = f'''You are a financial analyst and are analyzing a company with the ticker symbol {target_ticker_string}.
+    You are using a Multiples Valuation model.
+    This is the list of comparable companies {comparables_tickers} you have used. 
+    Here are all the multiples of the comparable Companies {multiples_df.to_string()}. 
+    Here is the implied value of the stock using The Forward PE Multiple: {round(valuation1,2)}.
+    Here is the implied value of the stock using The Trailing PE Multiple: {round(valuation2,2)}.
+    Here is the implied value of the stock using The EV to Revenue Multiple: {round(valuation3,2)}.
+    here is the implied value of the stock using The EV to EBITDA Multiple: {round(valuation4,2)}.
+    Here is the Actual current price of the stock: {ticker_obj.info.get('currentPrice')}
+    Using this data provide a detailed explanation of whether the Company is fairly valued or not.
+    Also give any crticics of the model '''
 
     if st.button("Generate Response"):
         payload = {
@@ -601,14 +615,6 @@ def k_means_clustering():
                 height=600,
             )
             st.plotly_chart(tsne_fig)
-    
-def screener():
-    st.markdown("# Screen")
-    df = pd.read_csv("Multiples_Database.csv")
-    df = df.drop(columns = ['Unnamed: 0'])
-    df = df.set_index("Company")
-    st.dataframe(df,width=1000, height=750)
-    st.markdown("# Industry Summaru")
 
 def check_ollama_running():
     """Check if Ollama is already running."""
@@ -646,12 +652,23 @@ def sector_screener():
     list_of_metrics.remove('Name')
     sectors = df['Sector'].unique().tolist()
     sector_metrics = pd.DataFrame()
+    
     for metric in list_of_metrics:
         temp_list = []
         if metric == "Market Cap":
             for sector in sectors:
                 temp_list.append(df[df['Sector']==sector][metric].sum())
             sector_metrics['Total Market Cap'] = temp_list
+        
+        elif metric == "Revenue":
+            for sector in sectors:
+                temp_list.append(df[df['Sector']==sector][metric].sum())
+            sector_metrics['Total Revenue'] = temp_list
+            
+        elif metric == "EBITDA":
+            for sector in sectors:
+                temp_list.append(df[df['Sector']==sector][metric].sum())
+            sector_metrics['Total EBITDA'] = temp_list
         else:
             for sector in sectors:
                 temp_list.append(df[df['Sector']==sector][metric].mean())
@@ -668,9 +685,46 @@ def sector_screener():
     sector_fig.update_layout(
                 autosize=False,
                 width=1000,
-                height=600,
+                height=500,
             )
     st.plotly_chart(sector_fig)
+    st.markdown("## Summary")
+    
+    user_prompt = f'''
+    You are investment Analyst lookin for potential sectors to invest in. 
+    You have been given the following data for the 11 sectors of the us economy {sector_metrics.to_string()} in a HTML Format. 
+    Using this data provide detailed breakdown of which sectors would be viable to invest in. Give Justifications. '''
+
+    #st.markdown(f"Prompt: {sector_metrics.to_html()}")
+    
+    
+    if st.button("Generate Response"):
+        payload = {
+            "model": "llama3",
+            "prompt": user_prompt,
+            "stream": False
+        }
+
+        try:
+            response = requests.post(OLLAMA_API_URL, json=payload)
+
+            if response.status_code == 200:
+                st.markdown("### 🤖 Ollama Response:")
+                st.markdown(response.json()["response"])
+            else:
+                st.error(f"❌ API Error: {response.status_code}")
+
+        except requests.exceptions.ConnectionError:
+            st.error("❌ Ollama server is not reachable. Make sure it is running.")
+    
+    st.markdown("----")
+    st.markdown("## List Stocks Under Each Sector")
+    sector_choice = st.selectbox("Input Sector", options=df['Sector'].unique())
+    st.dataframe(df[df['Sector'] == sector_choice])
+    
+    
+    
+    
     st.markdown("## Sector Performance")
     lookback_period = st.number_input("Enter Lookback Period", min_value=2, max_value=1257, step=10)
     sector_proxies = ['XLB', 'XLC', 'XLE', 'XLF', 'XLI', 'XLK', 'XLP', 'XLRE', 'XLU', 'XLV', 'XLY']
@@ -688,16 +742,31 @@ def sector_screener():
     performance_fig.update_layout(
                 autosize=False,
                 width=1000,
-                height=600,
+                height=500,
             )
     st.plotly_chart(performance_fig)
     
+    
+    st.markdown("-----")
+    st.markdown("## Headlines")
+    i=0
+    for ticker in sector_proxies:
+        st.markdown(f"### {sector_proxies_names[i]}")
+        oi = yf.Ticker(ticker)
+        news = oi.news
+        for article in news[0:3]:
+            st.markdown(f"#### {article["title"]}")
+            st.markdown(article['relatedTickers'])
+            st.markdown(article['link'])
+            
+        st.markdown("-----")
+        i = i+1
     
      
 with st.sidebar:
     selected = option_menu(
         menu_title = 'Models',
-        options = ['Portfolio Variance Calculator', 'DCF Model', 'Multiples Model', 'K Means Clustering', 'Screener', 'Sector Screener'],
+        options = ['Portfolio Variance Calculator', 'DCF Model', 'Multiples Model', 'K Means Clustering', 'Sector Screener'],
         orientation='vertical',
         icons = ['house', 'buildings', 'lock', 'buildings','buildings' ])
 
@@ -712,9 +781,6 @@ if selected == 'Multiples Model':
     
 if selected == 'K Means Clustering':
     k_means_clustering()
-
-if selected == 'Screener':
-    screener()
 
 if selected == 'Sector Screener':
     sector_screener()
