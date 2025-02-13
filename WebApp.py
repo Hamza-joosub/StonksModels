@@ -766,12 +766,11 @@ def sector_screener():
 with st.sidebar:
     selected = option_menu(
         menu_title = 'Models',
-        options = ['Portfolio Variance Calculator', 'DCF Model', 'Multiples Model', 'K Means Clustering', 'Sector Screener'],
+        options = [ 'DCF Model', 'Multiples Model', 'K Means Clustering', 'Sector Screener','Portfolio Variance Calculator'],
         orientation='vertical',
         icons = ['house', 'buildings', 'lock', 'buildings','buildings' ])
 
-if selected == 'Portfolio Variance Calculator':
-    risk_analysis()
+
     
 if selected == 'DCF Model':
     dcfModel()
@@ -784,6 +783,9 @@ if selected == 'K Means Clustering':
 
 if selected == 'Sector Screener':
     sector_screener()
+    
+if selected == 'Portfolio Variance Calculator':
+    risk_analysis()
 
 
 
