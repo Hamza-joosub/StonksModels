@@ -28,42 +28,74 @@ def risk_analysis():
     weights = []
     start = "2022-01-01"
     end = datetime.today().strftime('%Y-%m-%d')
-    
         
-    
-        
-    if len(Tickers)>1:
+    if len(Tickers) > 1:
         st.markdown("## Portfolio Correlation")
-        rawData = yf.download(tickers=Tickers,start=start, end =end, interval ='1d' )["Close"]  
+        rawData = yf.download(tickers=Tickers, start=start, end=end, interval='1d')["Close"]
         diffirenced_data = rawData.pct_change()
         corr_matrix = diffirenced_data.corr()
-        fig = px.imshow(corr_matrix,aspect = 'auto', color_continuous_scale='sunsetdark',)
+        fig = px.imshow(corr_matrix, aspect='auto', color_continuous_scale='sunsetdark')
         st.plotly_chart(fig)
         
-        st.markdown("## Porfolio Variance")
+        st.markdown("## Portfolio Variance")
         with st.form("form4"):
             for i in range(len(Tickers)):
-                temp_weight = st.number_input(f'weight: {Tickers[i]}', key=i,step = 5 )
+                temp_weight = st.number_input(f'Weight for {Tickers[i]} (%):', key=i, step=5)
                 weights.append(temp_weight)
-            variance_weights = st.form_submit_button("confirm")   
-        if variance_weights:      
-            covariance_Matrix = rawData.corr()
-            total_risk_Exposure = 0
+            variance_weights = st.form_submit_button("Confirm")
         
-            tickerNumber = 0
-            for ticker in Tickers:
-                st.markdown(f"Volatility of {ticker}: {round(((rawData[ticker].pct_change()).std()*100),2)}%")
-                total_risk_Exposure = total_risk_Exposure + ((rawData[ticker].pct_change().std())**2)*((weights[tickerNumber]/100)**2)
-                tickerNumber = tickerNumber+1
+        if variance_weights:
+            # Ensure weights sum to 1 (100%)
+            weights = [w / 100 for w in weights]  # Convert percentages to fractions
+            covariance_matrix = diffirenced_data.cov()
+            total_risk_Exposure = np.dot(weights, np.dot(covariance_matrix, weights))
             
-            for ticker in range(len(Tickers)-1):
-                for ticker2 in range(ticker, len(Tickers)):
-                    if ticker == ticker2:
-                        continue
-                    total_risk_Exposure = total_risk_Exposure + 2*covariance_Matrix.iloc[ticker,ticker2]*(weights[ticker]/100)*(weights[ticker2]/100)
-            portfolio_Variance = f"{round(total_risk_Exposure*100,2)}%"
-            Portfolio_Volatility = f"{round(math.sqrt(abs(total_risk_Exposure*100)),2)}%"
-            st.markdown(f'### Porfolio Variance: {Portfolio_Volatility}')
+            # Display each stock's volatility
+            for ticker in Tickers:
+                volatility_annualized = rawData[ticker].pct_change().std() * np.sqrt(252)  # annualized volatility
+                volatility_daily = rawData[ticker].pct_change().std()
+                st.markdown(f"Annualized Volatility of {ticker}: {round(volatility_annualized * 100, 2)}%, With Daily Volatility of {ticker}: {round(volatility_daily * 100, 2)}%")
+                st.markdown(f"")
+            
+            portfolio_variance = total_risk_Exposure
+            portfolio_volatility_annaulized = math.sqrt(portfolio_variance) * np.sqrt(252)  # annualized volatility
+            portfolio_volatility_daily = math.sqrt(portfolio_variance)
+            portfolio_return = np.dot(diffirenced_data.mean(), weights)*10000
+            
+            st.markdown(f'### Annualized Portfolio Volatility: {round(portfolio_volatility_annaulized * 100, 2)}%')
+            st.markdown(f'### Daily Portfolio Volatility: {round(portfolio_volatility_daily * 100, 2)}%')
+            st.markdown("----")
+            st.markdown("# Efficient Frontier")
+            alpha = []
+            stds = []
+            w = []
+
+            for i in (range(5000)):
+                weights = np.random.random(len(diffirenced_data.columns))
+                weights /= weights.sum()
+                alpha.append((np.dot(diffirenced_data.mean(), weights)*10000))
+                portfolio_variance = np.dot(weights, np.dot(covariance_matrix, weights))
+                stds.append((math.sqrt(portfolio_variance)*np.sqrt(252))*10)
+                w.append(weights)
+            
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x = stds, y = alpha, mode='markers',marker=dict(color='blue',size=3), name="Random Portfolio's" ))
+            fig.add_trace(go.Scatter(x = [portfolio_volatility_annaulized*10], y = [portfolio_return], mode='markers',marker=dict(color='green',size=15),name='Current Portfolio'))
+            fig.update_xaxes(title_text = 'Portfolio Standard Deviation(%)')
+            fig.update_yaxes(title_text = 'Return(%)')
+            fig.update_layout(
+                autosize=False,
+                width=1300,
+                height=500,
+            )
+            st.plotly_chart(fig)
+            portfolio_metrics = pd.DataFrame()
+            portfolio_metrics['Weights'] = w
+            portfolio_metrics['returns'] = alpha
+            portfolio_metrics['Vol'] = stds
+            portfolio_metrics['Sharpe'] = portfolio_metrics['returns']/portfolio_metrics['Vol']
+            portfolio_metrics = portfolio_metrics.sort_values('Sharpe', ascending=False)
+            st.dataframe(portfolio_metrics)
 
 def dcfModel():
     #Get Statement and Ticker Data
