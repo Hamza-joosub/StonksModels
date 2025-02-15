@@ -95,7 +95,14 @@ def risk_analysis():
             portfolio_metrics['Vol'] = stds
             portfolio_metrics['Sharpe'] = portfolio_metrics['returns']/portfolio_metrics['Vol']
             portfolio_metrics = portfolio_metrics.sort_values('Sharpe', ascending=False)
-            st.dataframe(portfolio_metrics)
+            portfolio_weights = pd.DataFrame()
+            portfolio_weights['Ticker'] = Tickers
+            for i in range(0,4):
+                portfolio_return = portfolio_metrics.iloc[i,1]
+                portfolio_sharpe = portfolio_metrics.iloc[i,3]
+                portfolio_weights[f'Portfolio Rank {i+1} With Return: {round(portfolio_return,2)}% and Sharpe: {round(portfolio_sharpe,2)}%'] = portfolio_metrics.iloc[i,0].tolist() 
+            st.dataframe(portfolio_weights)
+            
 
 def dcfModel():
     #Get Statement and Ticker Data
