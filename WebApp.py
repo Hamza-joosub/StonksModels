@@ -15,60 +15,55 @@ import requests
 import os
 from stqdm import stqdm
 from sklearn.manifold import TSNE
+import plotly_express as px
 st.set_page_config(layout="wide")
 OLLAMA_API_URL = "http://127.0.0.1:11434/api/generate"
 
-def Calc_correlation_Matrix(Tickers, Start, End, Interval):
-    portfolio_tickers = Tickers
-    start = Start
-    end = End
-    rawData = yf.download(tickers=portfolio_tickers,start=start, end =end, interval =Interval )["Close"]  
-    diffirenced_data = rawData.pct_change()
-    corr_matrix = diffirenced_data.corr()
-    fig = px.imshow(corr_matrix,aspect = 'auto', color_continuous_scale='sunsetdark',)
-    
-    return fig
 
-def portfolio_variance(Tickers, Start, End, Interval):
-    st.markdown("# Porfolio Variance")
-    weights = []
-    portfolio_tickers = Tickers
-    with st.form("form4"):
-        for i in range(len(Tickers)):
-            temp_weight = st.number_input(f'weight: {Tickers[i]}', key=i,step = 5 )
-            weights.append(temp_weight)
-        variance_weights = st.form_submit_button("confirm")   
-    if variance_weights:    
-        start = Start
-        end = End
-        rawData = yf.download(tickers=portfolio_tickers,start=start, end =end, interval =Interval )["Close"]  
-        covariance_Matrix = rawData.corr()
-        total_risk_Exposure = 0
     
-        tickerNumber = 0
-        for ticker in portfolio_tickers:
-            st.markdown(f"Volatility of {ticker}: {round(((rawData[ticker].pct_change()).std()*100),2)}%")
-            total_risk_Exposure = total_risk_Exposure + ((rawData[ticker].pct_change().std())**2)*((weights[tickerNumber]/100)**2)
-            tickerNumber = tickerNumber+1
-        
-        for ticker in range(len(portfolio_tickers)-1):
-            for ticker2 in range(ticker, len(portfolio_tickers)):
-                if ticker == ticker2:
-                    continue
-                total_risk_Exposure = total_risk_Exposure + 2*covariance_Matrix.iloc[ticker,ticker2]*(weights[ticker]/100)*(weights[ticker2]/100)
-        
-    
-        portfolio_Variance = f"{round(total_risk_Exposure*100,2)}%"
-        Portfolio_Volatility = f"{round(math.sqrt(abs(total_risk_Exposure*100)),2)}%"
-        st.markdown(f'### Porfolio Variance: {Portfolio_Volatility}')
 
 def risk_analysis():
     stock_list_pd = pd.read_pickle("StockList")
-    portfolio_stocks = st.multiselect("Choose Stocks", options=stock_list_pd["symbol"].to_list())
-    if len(portfolio_stocks)>1:
-        st.markdown("# Portfolio Correlation")
-        st.plotly_chart(Calc_correlation_Matrix(Tickers = portfolio_stocks, Start = "2022-01-01" , End = datetime.today().strftime('%Y-%m-%d'), Interval = "1d"))
-        portfolio_variance(Tickers = portfolio_stocks, Start = "2022-01-01" , End = datetime.today().strftime('%Y-%m-%d'), Interval = "1d")
+    Tickers = st.multiselect("Choose Stocks", options=stock_list_pd["symbol"].to_list())
+    weights = []
+    start = "2022-01-01"
+    end = datetime.today().strftime('%Y-%m-%d')
+    
+        
+    
+        
+    if len(Tickers)>1:
+        st.markdown("## Portfolio Correlation")
+        rawData = yf.download(tickers=Tickers,start=start, end =end, interval ='1d' )["Close"]  
+        diffirenced_data = rawData.pct_change()
+        corr_matrix = diffirenced_data.corr()
+        fig = px.imshow(corr_matrix,aspect = 'auto', color_continuous_scale='sunsetdark',)
+        st.plotly_chart(fig)
+        
+        st.markdown("## Porfolio Variance")
+        with st.form("form4"):
+            for i in range(len(Tickers)):
+                temp_weight = st.number_input(f'weight: {Tickers[i]}', key=i,step = 5 )
+                weights.append(temp_weight)
+            variance_weights = st.form_submit_button("confirm")   
+        if variance_weights:      
+            covariance_Matrix = rawData.corr()
+            total_risk_Exposure = 0
+        
+            tickerNumber = 0
+            for ticker in Tickers:
+                st.markdown(f"Volatility of {ticker}: {round(((rawData[ticker].pct_change()).std()*100),2)}%")
+                total_risk_Exposure = total_risk_Exposure + ((rawData[ticker].pct_change().std())**2)*((weights[tickerNumber]/100)**2)
+                tickerNumber = tickerNumber+1
+            
+            for ticker in range(len(Tickers)-1):
+                for ticker2 in range(ticker, len(Tickers)):
+                    if ticker == ticker2:
+                        continue
+                    total_risk_Exposure = total_risk_Exposure + 2*covariance_Matrix.iloc[ticker,ticker2]*(weights[ticker]/100)*(weights[ticker2]/100)
+            portfolio_Variance = f"{round(total_risk_Exposure*100,2)}%"
+            Portfolio_Volatility = f"{round(math.sqrt(abs(total_risk_Exposure*100)),2)}%"
+            st.markdown(f'### Porfolio Variance: {Portfolio_Volatility}')
 
 def dcfModel():
     #Get Statement and Ticker Data
