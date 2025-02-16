@@ -100,10 +100,9 @@ def risk_analysis():
             for i in range(0,4):
                 portfolio_return = portfolio_metrics.iloc[i,1]
                 portfolio_sharpe = portfolio_metrics.iloc[i,3]
-                portfolio_weights[f'Portfolio Rank {i+1} With Return: {round(portfolio_return,2)}% and Sharpe: {round(portfolio_sharpe,2)}%'] = portfolio_metrics.iloc[i,0].tolist() 
+                portfolio_weights[f'Portfolio Rank {i+1} With Return: {round(portfolio_return,2)}% and Sharpe: {round(portfolio_sharpe,2)}'] = portfolio_metrics.iloc[i,0].tolist() 
             st.dataframe(portfolio_weights)
             
-
 def dcfModel():
     #Get Statement and Ticker Data
     stock_list_pd = pd.read_pickle("StockList") #must Get from Database
@@ -722,6 +721,45 @@ def sector_screener():
                 height=500,
             )
     st.plotly_chart(sector_fig)
+    st.markdown("## Sector Ranks")
+    columns_to_reverse = ['Average Sector: EV/EBITDA', 'Average Sector: EV/Rev', 'Average Sector: Debt/Equity',
+                      'Average Sector: PE', 'Average Sector: Beta','Average Sector: Trailing PEG Ratio' ]
+    sector_ranks = pd.DataFrame()
+    for column in sector_metrics.columns:
+        if column in columns_to_reverse:
+            sector_ranks[column + ' Rank'] = sector_metrics[column].rank(ascending=True)  # Lower is better
+        else:
+            sector_ranks[column + ' Rank'] = sector_metrics[column].rank(ascending=False)  # Higher is better
+        
+    st.dataframe(sector_ranks)
+    # Assuming 'ranked_df' is your DataFrame with ranks
+    fig = go.Figure(data=go.Heatmap(
+        z=sector_ranks.values,
+        x=sector_ranks.columns,
+        y=sector_ranks.index,
+        colorscale='thermal',  # This is a visually appealing color scale; you can choose any
+        reversescale=True,  # Reverse the color scale to match the rank logic
+        colorbar=dict(title='Rank')
+    ))
+
+    fig.update_layout(
+        title='Sector Metric Rankings',
+        xaxis_title='Metrics',
+        yaxis_title='Sectors',
+        yaxis_autorange='reversed'  # Optionally reverse the y-axis to have the top rank at the top
+    )
+
+
+    fig.update_layout(
+                    autosize=False,
+                    width=1300,
+                    height=700,
+                )
+
+    st.plotly_chart(fig)
+    
+    
+    
     st.markdown("## Summary")
     
     user_prompt = f'''
