@@ -731,7 +731,7 @@ def sector_screener():
         else:
             sector_ranks[column + ' Rank'] = sector_metrics[column].rank(ascending=False)  # Higher is better
         
-    st.dataframe(sector_ranks)
+    #st.dataframe(sector_ranks)
     # Assuming 'ranked_df' is your DataFrame with ranks
     fig = go.Figure(data=go.Heatmap(
         z=sector_ranks.values,
@@ -752,7 +752,7 @@ def sector_screener():
 
     fig.update_layout(
                     autosize=False,
-                    width=1300,
+                    width=1000,
                     height=700,
                 )
 
