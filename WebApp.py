@@ -17,10 +17,7 @@ from stqdm import stqdm
 from sklearn.manifold import TSNE
 import plotly_express as px
 st.set_page_config(layout="wide")
-OLLAMA_API_URL = "http://127.0.0.1:11434/api/generate"
-
-
-    
+OLLAMA_API_URL = "http://127.0.0.1:11434/api/generate"  
 
 def risk_analysis():
     stock_list_pd = pd.read_pickle("StockList")
@@ -354,188 +351,191 @@ def multiplesModel():
     comparables_tickers = st.multiselect('Select Comparable Stocks', options=stock_list_pd["symbol"].to_list())
     comparables_tickers.append(target_ticker_string)
     ticker_obj = yf.Ticker(target_ticker_string)
-   
-    
-    st.markdown('# Historical Multiples Vs Average')
-    
-    all_company_multiples_pe = pd.DataFrame()
-    all_company_multiples_ps = pd.DataFrame()
-    
-    for company in comparables_tickers:
-        target_ticker = yf.Ticker(company)
-
-        prices = pd.DataFrame(target_ticker.history(start='2020-01-01')['Close'])
-        prices.index = prices.index.date  
-
-        income_stmnt = target_ticker.income_stmt.T 
-        income_stmnt.index = income_stmnt.index.date
-
-        # Step 3: Forward-fill missing values in the diluted shares column
-        income_stmnt['Diluted Average Shares'].fillna(method='bfill', inplace=True)
-
-        # Step 4: Calculate EPS (Net Income / Diluted Shares)
-        income_stmnt['EPS'] = income_stmnt['Net Income'] / income_stmnt['Diluted Average Shares']
-        income_stmnt['RPS'] = income_stmnt['Total Revenue'] / income_stmnt['Diluted Average Shares']
-
-        all_dates = pd.date_range(start=min(prices.index.min(), income_stmnt.index.min()),
-                            end=max(prices.index.max(), income_stmnt.index.max()), freq='D')
+    st.markdown(comparables_tickers)
+    if len(comparables_tickers) == 1:
+        st.markdown("Input Tickers")
+    else:    
+        st.markdown('# Historical Multiples Vs Average')
         
-        prices = prices.reindex(all_dates)
-        #prices['Close'].fillna(method='bfill', inplace=True)
-        
-        prices = prices.merge(income_stmnt[['EPS']], left_index=True, right_index=True, how='left')
-        prices = prices.merge(income_stmnt[['RPS']], left_index=True, right_index=True, how='left')
-        
-        prices = prices.fillna(method = 'ffill')
-        prices['Trailling PE'] = prices['Close']/prices['EPS']
-        
-        
-        prices['Trailling PS'] = prices['Close']/prices['RPS']
 
+        all_company_multiples_pe = pd.DataFrame()
+        all_company_multiples_ps = pd.DataFrame()
         
-        all_company_multiples_pe[f'{company}'] = prices['Trailling PE']
-        all_company_multiples_ps[f'{company}'] = prices['Trailling PS']
-    
-    
-    all_company_multiples_pe['Average'] = (all_company_multiples_pe.sum(axis=1))/(len(comparables_tickers))
-    all_company_multiples_ps['Average'] = (all_company_multiples_ps.sum(axis=1))/(len(comparables_tickers))
-    
-    with st.form('Plot Historic Multiples'):
-        multiple_to_plot = st.selectbox('Select Multiples to Plot', options = ['PE', 'PS'])
-        confirm = st.form_submit_button('Plot')
-        if confirm:
-            if multiple_to_plot == 'PE':
-                pe_fig = go.Figure()
-                pe_fig.add_trace(go.Scatter(x =all_company_multiples_pe.index, y=all_company_multiples_pe[f'{target_ticker_string}'], name=f'{target_ticker_string} ' ))
-                pe_fig.add_trace(go.Scatter(x =all_company_multiples_pe.index, y=all_company_multiples_pe[f'Average'], name=f'Average ' ))
-                st.plotly_chart(pe_fig)
-            elif multiple_to_plot == 'PS':
-                ps_fig = go.Figure()
-                ps_fig.add_trace(go.Scatter(x =all_company_multiples_ps.index, y=all_company_multiples_ps[f'{target_ticker_string}'], name=f'{target_ticker_string} ' ))
-                ps_fig.add_trace(go.Scatter(x =all_company_multiples_ps.index, y=all_company_multiples_ps[f'Average'], name=f'Average ' )) 
-                st.plotly_chart(ps_fig)
-    st.markdown("---")
-    st.markdown('# Snapshot of Multiples Vs Average')           
-    multiples_list = ["Forward PE", "Trailing PE", "EV To EBITDA", "EV To Revenue", "PS"]
-    multiples_df = pd.DataFrame()
-    multiples_df['Multiple'] = multiples_list
-    multiples_df = multiples_df.set_index('Multiple')
-    
-    comparables_tickers.pop(-1)
-    
-    
-    for company in comparables_tickers:
-        ticker = yf.Ticker(company)
-        info = ticker.info
-        temp_list = []
-        fPE = temp_list.append(info.get('forwardPE'))
-        tPE = temp_list.append(info.get('trailingPE'))
-        evebitda = temp_list.append(info.get('enterpriseToEbitda'))
-        evrevenue = temp_list.append(info.get('enterpriseToRevenue'))
-        ps = temp_list.append(info.get('currentPrice')/info.get('revenuePerShare'))
-        multiples_df[f'{company}'] = temp_list
-        temp_list = []
+        for company in comparables_tickers:
+            target_ticker = yf.Ticker(company)
+
+            prices = pd.DataFrame(target_ticker.history(start='2020-01-01')['Close'])
+            prices.index = prices.index.date  
+
+            income_stmnt = target_ticker.income_stmt.T 
+            income_stmnt.index = income_stmnt.index.date
+
+            # Step 3: Forward-fill missing values in the diluted shares column
+            income_stmnt['Diluted Average Shares'].fillna(method='bfill', inplace=True)
+
+            # Step 4: Calculate EPS (Net Income / Diluted Shares)
+            income_stmnt['EPS'] = income_stmnt['Net Income'] / income_stmnt['Diluted Average Shares']
+            income_stmnt['RPS'] = income_stmnt['Total Revenue'] / income_stmnt['Diluted Average Shares']
+
+            all_dates = pd.date_range(start=min(prices.index.min(), income_stmnt.index.min()),
+                                end=max(prices.index.max(), income_stmnt.index.max()), freq='D')
+            
+            prices = prices.reindex(all_dates)
+            #prices['Close'].fillna(method='bfill', inplace=True)
+            
+            prices = prices.merge(income_stmnt[['EPS']], left_index=True, right_index=True, how='left')
+            prices = prices.merge(income_stmnt[['RPS']], left_index=True, right_index=True, how='left')
+            
+            prices = prices.fillna(method = 'ffill')
+            prices['Trailling PE'] = prices['Close']/prices['EPS']
+            
+            
+            prices['Trailling PS'] = prices['Close']/prices['RPS']
+
+            
+            all_company_multiples_pe[f'{company}'] = prices['Trailling PE']
+            all_company_multiples_ps[f'{company}'] = prices['Trailling PS']
         
-    multiples_df['Average'] = (multiples_df.sum(axis=1))/(len(comparables_tickers))
-    multiples_df['Median'] = (multiples_df.median(axis=1))
-    st.dataframe(multiples_df)
-    
-    
-    multiples_df = multiples_df.T
-    
-    with st.form('Plot Multiples'):
-        multiple_to_plot = st.selectbox('Select Multiple to Plot', options = multiples_list)
-        confirm = st.form_submit_button('Plot')
-        if confirm:
-            multiple_bar_plot = go.Figure()
-            multiple_bar_plot.add_trace(go.Bar(x=multiples_df.index, y = multiples_df[multiple_to_plot]))
-            st.plotly_chart(multiple_bar_plot)
-    st.markdown("---")
-    st.markdown('# Valuation')
-    st.dataframe(multiples_df)
-    
-    st.markdown("## Forward PE Valuation")
-    
-    fpe = (multiples_df['Forward PE'].to_list()[-1])
-    feps = (ticker_obj.info.get("forwardEps"))
-    st.markdown(f"Forward PE: {fpe}")
-    st.markdown(f"Forward EPS: {feps}")
-    valuation1 = fpe*feps
-    st.markdown(f"#### Valuation: ${round(valuation1,2)}")
-    st.markdown("---")
-    
-    st.markdown("## Trailing PE Valuation")
-    
-    tpe = (multiples_df['Trailing PE'].to_list()[-1])
-    teps = (ticker_obj.info.get("trailingEps"))
-    st.markdown(f"Trailing PE: {tpe}")
-    st.markdown(f"Trailing EPS: {teps}")
-    valuation2 = tpe*teps
-    st.markdown(f"#### Valuation: ${round(valuation2,2)}")
-    st.markdown("---")
-    
-    
-    st.markdown("## EV/EBITDA Valuation")
-    
-    evebitda = (multiples_df['EV To EBITDA'].to_list()[-1])
-    ebitda = (ticker_obj.info.get("ebitda"))
-    st.markdown(f"EV To EBITDA: {evebitda}")
-    st.markdown(f"EBITDA: {ebitda}")
-    ev = evebitda*ebitda
-    st.markdown(f"Enterprise Value: {ev}")
-    equityValue = ev-(ticker_obj.info.get("totalDebt")-ticker_obj.info.get("totalCash"))
-    st.markdown(f"Equity Value: {equityValue}")
-    valuation3 = (equityValue/ticker_obj.info.get("sharesOutstanding"))
-    st.markdown(f'#### Valuation: ${round(valuation3,2)}')
-    st.markdown("---")
-    st.markdown("## EV/Revenue Valuation")
-    
-    evtorevenue = (multiples_df['EV To Revenue'].to_list()[-1])
-    revenue = (ticker_obj.info.get("totalRevenue"))
-    st.markdown(f"EV To Revenue: {evtorevenue}")
-    st.markdown(f"Revenue: {revenue}")
-    ev = evtorevenue*revenue
-    st.markdown(f"Enterprise Value: {ev}")
-    equityValue = ev-(ticker_obj.info.get("totalDebt")-ticker_obj.info.get("totalCash"))
-    st.markdown(f"Equity Value: {equityValue}")
-    valuation4 = (equityValue/ticker_obj.info.get("sharesOutstanding"))
-    st.markdown(f'#### Valuation: ${round(valuation4,2)}')
-    st.markdown("---")
-    st.markdown(f"### Average of All Valuations:$ {round(((valuation1+valuation2+valuation3+valuation4)/(4)),2)}")
-    st.markdown(f'### Current Price: ${ticker_obj.info.get('currentPrice')}')
-    
-    st.markdown("# Summary")
-     
-    user_prompt = f'''You are a financial analyst and are analyzing a company with the ticker symbol {target_ticker_string}.
-    You are using a Multiples Valuation model.
-    This is the list of comparable companies {comparables_tickers} you have used. 
-    Here are all the multiples of the comparable Companies {multiples_df.to_string()}. 
-    Here is the implied value of the stock using The Forward PE Multiple: {round(valuation1,2)}.
-    Here is the implied value of the stock using The Trailing PE Multiple: {round(valuation2,2)}.
-    Here is the implied value of the stock using The EV to Revenue Multiple: {round(valuation3,2)}.
-    here is the implied value of the stock using The EV to EBITDA Multiple: {round(valuation4,2)}.
-    Here is the Actual current price of the stock: {ticker_obj.info.get('currentPrice')}
-    Using this data provide a detailed explanation of whether the Company is fairly valued or not.
-    Also give any crticics of the model '''
+        
+        all_company_multiples_pe['Average'] = (all_company_multiples_pe.sum(axis=1))/(len(comparables_tickers))
+        all_company_multiples_ps['Average'] = (all_company_multiples_ps.sum(axis=1))/(len(comparables_tickers))
+        
+        with st.form('Plot Historic Multiples'):
+            multiple_to_plot = st.selectbox('Select Multiples to Plot', options = ['PE', 'PS'])
+            confirm = st.form_submit_button('Plot')
+            if confirm:
+                if multiple_to_plot == 'PE':
+                    pe_fig = go.Figure()
+                    pe_fig.add_trace(go.Scatter(x =all_company_multiples_pe.index, y=all_company_multiples_pe[f'{target_ticker_string}'], name=f'{target_ticker_string} ' ))
+                    pe_fig.add_trace(go.Scatter(x =all_company_multiples_pe.index, y=all_company_multiples_pe[f'Average'], name=f'Average ' ))
+                    st.plotly_chart(pe_fig)
+                elif multiple_to_plot == 'PS':
+                    ps_fig = go.Figure()
+                    ps_fig.add_trace(go.Scatter(x =all_company_multiples_ps.index, y=all_company_multiples_ps[f'{target_ticker_string}'], name=f'{target_ticker_string} ' ))
+                    ps_fig.add_trace(go.Scatter(x =all_company_multiples_ps.index, y=all_company_multiples_ps[f'Average'], name=f'Average ' )) 
+                    st.plotly_chart(ps_fig)
+        st.markdown("---")
+        st.markdown('# Snapshot of Multiples Vs Average')           
+        multiples_list = ["Forward PE", "Trailing PE", "EV To EBITDA", "EV To Revenue", "PS"]
+        multiples_df = pd.DataFrame()
+        multiples_df['Multiple'] = multiples_list
+        multiples_df = multiples_df.set_index('Multiple')
+        
+        comparables_tickers.pop(-1)
+        
+        
+        for company in comparables_tickers:
+            ticker = yf.Ticker(company)
+            info = ticker.info
+            temp_list = []
+            fPE = temp_list.append(info.get('forwardPE'))
+            tPE = temp_list.append(info.get('trailingPE'))
+            evebitda = temp_list.append(info.get('enterpriseToEbitda'))
+            evrevenue = temp_list.append(info.get('enterpriseToRevenue'))
+            ps = temp_list.append(info.get('currentPrice')/info.get('revenuePerShare'))
+            multiples_df[f'{company}'] = temp_list
+            temp_list = []
+            
+        multiples_df['Average'] = (multiples_df.sum(axis=1))/(len(comparables_tickers))
+        multiples_df['Median'] = (multiples_df.median(axis=1))
+        st.dataframe(multiples_df)
+        
+        
+        multiples_df = multiples_df.T
+        
+        with st.form('Plot Multiples'):
+            multiple_to_plot = st.selectbox('Select Multiple to Plot', options = multiples_list)
+            confirm = st.form_submit_button('Plot')
+            if confirm:
+                multiple_bar_plot = go.Figure()
+                multiple_bar_plot.add_trace(go.Bar(x=multiples_df.index, y = multiples_df[multiple_to_plot]))
+                st.plotly_chart(multiple_bar_plot)
+        st.markdown("---")
+        st.markdown('# Valuation')
+        st.dataframe(multiples_df)
+        
+        st.markdown("## Forward PE Valuation")
+        
+        fpe = (multiples_df['Forward PE'].to_list()[-1])
+        feps = (ticker_obj.info.get("forwardEps"))
+        st.markdown(f"Forward PE: {fpe}")
+        st.markdown(f"Forward EPS: {feps}")
+        valuation1 = fpe*feps
+        st.markdown(f"#### Valuation: ${round(valuation1,2)}")
+        st.markdown("---")
+        
+        st.markdown("## Trailing PE Valuation")
+        
+        tpe = (multiples_df['Trailing PE'].to_list()[-1])
+        teps = (ticker_obj.info.get("trailingEps"))
+        st.markdown(f"Trailing PE: {tpe}")
+        st.markdown(f"Trailing EPS: {teps}")
+        valuation2 = tpe*teps
+        st.markdown(f"#### Valuation: ${round(valuation2,2)}")
+        st.markdown("---")
+        
+        
+        st.markdown("## EV/EBITDA Valuation")
+        
+        evebitda = (multiples_df['EV To EBITDA'].to_list()[-1])
+        ebitda = (ticker_obj.info.get("ebitda"))
+        st.markdown(f"EV To EBITDA: {evebitda}")
+        st.markdown(f"EBITDA: {ebitda}")
+        ev = evebitda*ebitda
+        st.markdown(f"Enterprise Value: {ev}")
+        equityValue = ev-(ticker_obj.info.get("totalDebt")-ticker_obj.info.get("totalCash"))
+        st.markdown(f"Equity Value: {equityValue}")
+        valuation3 = (equityValue/ticker_obj.info.get("sharesOutstanding"))
+        st.markdown(f'#### Valuation: ${round(valuation3,2)}')
+        st.markdown("---")
+        st.markdown("## EV/Revenue Valuation")
+        
+        evtorevenue = (multiples_df['EV To Revenue'].to_list()[-1])
+        revenue = (ticker_obj.info.get("totalRevenue"))
+        st.markdown(f"EV To Revenue: {evtorevenue}")
+        st.markdown(f"Revenue: {revenue}")
+        ev = evtorevenue*revenue
+        st.markdown(f"Enterprise Value: {ev}")
+        equityValue = ev-(ticker_obj.info.get("totalDebt")-ticker_obj.info.get("totalCash"))
+        st.markdown(f"Equity Value: {equityValue}")
+        valuation4 = (equityValue/ticker_obj.info.get("sharesOutstanding"))
+        st.markdown(f'#### Valuation: ${round(valuation4,2)}')
+        st.markdown("---")
+        st.markdown(f"### Average of All Valuations:$ {round(((valuation1+valuation2+valuation3+valuation4)/(4)),2)}")
+        st.markdown(f'### Current Price: ${ticker_obj.info.get('currentPrice')}')
+        
+        st.markdown("# Summary")
+        
+        user_prompt = f'''You are a financial analyst and are analyzing a company with the ticker symbol {target_ticker_string}.
+        You are using a Multiples Valuation model.
+        This is the list of comparable companies {comparables_tickers} you have used. 
+        Here are all the multiples of the comparable Companies {multiples_df.to_string()}. 
+        Here is the implied value of the stock using The Forward PE Multiple: {round(valuation1,2)}.
+        Here is the implied value of the stock using The Trailing PE Multiple: {round(valuation2,2)}.
+        Here is the implied value of the stock using The EV to Revenue Multiple: {round(valuation3,2)}.
+        here is the implied value of the stock using The EV to EBITDA Multiple: {round(valuation4,2)}.
+        Here is the Actual current price of the stock: {ticker_obj.info.get('currentPrice')}
+        Using this data provide a detailed explanation of whether the Company is fairly valued or not.
+        Also give any crticics of the model '''
 
-    if st.button("Generate Response"):
-        payload = {
-            "model": "llama3",
-            "prompt": user_prompt,
-            "stream": False
-        }
+        if st.button("Generate Response"):
+            payload = {
+                "model": "llama3",
+                "prompt": user_prompt,
+                "stream": False
+            }
 
-        try:
-            response = requests.post(OLLAMA_API_URL, json=payload)
+            try:
+                response = requests.post(OLLAMA_API_URL, json=payload)
 
-            if response.status_code == 200:
-                st.markdown("### 🤖 Ollama Response:")
-                st.markdown(response.json()["response"])
-            else:
-                st.error(f"❌ API Error: {response.status_code}")
+                if response.status_code == 200:
+                    st.markdown("### 🤖 Ollama Response:")
+                    st.markdown(response.json()["response"])
+                else:
+                    st.error(f"❌ API Error: {response.status_code}")
 
-        except requests.exceptions.ConnectionError:
-            st.error("❌ Ollama server is not reachable. Make sure it is running.")
+            except requests.exceptions.ConnectionError:
+                st.error("❌ Ollama server is not reachable. Make sure it is running.")
 
 def k_means_clustering():
     st.markdown("# KMeans Clustering")
@@ -730,8 +730,10 @@ def sector_screener():
             sector_ranks[column + ' Rank'] = sector_metrics[column].rank(ascending=True)  # Lower is better
         else:
             sector_ranks[column + ' Rank'] = sector_metrics[column].rank(ascending=False)  # Higher is better
-        
+    sector_ranks['Average Rank'] = sector_ranks.sum(axis=1)/(sector_ranks.shape[1]-1)
+    sector_ranks['Median Rank'] = sector_ranks.median(axis=1)
     #st.dataframe(sector_ranks)
+    
     # Assuming 'ranked_df' is your DataFrame with ranks
     fig = go.Figure(data=go.Heatmap(
         z=sector_ranks.values,
@@ -752,7 +754,7 @@ def sector_screener():
 
     fig.update_layout(
                     autosize=False,
-                    width=1000,
+                    width=1300,
                     height=700,
                 )
 
@@ -803,46 +805,36 @@ def sector_screener():
     sector_proxies_names = ['Materials', 'Communications', 'Energy', 'Financials', 'Industrials', 'Technology', 'Consumer Staples', 'Real Estate', 'Utilities', 'Healthcare', 'Consumer Discretionary']
     hm = yf.Tickers(sector_proxies)
     df = hm.history(period='5y', interval='1d',auto_adjust=False)['Close']
-    performance_df = ((df.iloc[-1,:]-df.iloc[-lookback_period,:])/df.iloc[-lookback_period,:])*100
-    performance_df = pd.DataFrame(performance_df, columns=["Value", ])
-    performance_df["Name"] = sector_proxies_names
-    performance_fig = go.Figure()
-    temp = performance_df.sort_values(['Value'])
-    performance_fig.add_trace(go.Bar(x = temp['Value'], y = temp["Name"], orientation='h'))
-    performance_fig.update_xaxes(title_text = f"Performance over {lookback_period-1} Days")
-    performance_fig.update_yaxes(title_text = "Sector")
-    performance_fig.update_layout(
-                autosize=False,
-                width=1000,
-                height=500,
-            )
-    st.plotly_chart(performance_fig)
+    if df.shape[0] == 0:
+        st.markdown("#### Error Getting Live Data")
+    else:
+        performance_df = ((df.iloc[-1,:]-df.iloc[-lookback_period,:])/df.iloc[-lookback_period,:])*100
+        performance_df = pd.DataFrame(performance_df, columns=["Value", ])
+        performance_df["Name"] = sector_proxies_names
+        performance_fig = go.Figure()
+        temp = performance_df.sort_values(['Value'])
+        performance_fig.add_trace(go.Bar(x = temp['Value'], y = temp["Name"], orientation='h'))
+        performance_fig.update_xaxes(title_text = f"Performance over {lookback_period-1} Days")
+        performance_fig.update_yaxes(title_text = "Sector")
+        performance_fig.update_layout(
+                    autosize=False,
+                    width=1000,
+                    height=500,
+                )
+        st.plotly_chart(performance_fig)
     
     
     st.markdown("-----")
-    st.markdown("## Headlines")
-    i=0
-    for ticker in sector_proxies:
-        st.markdown(f"### {sector_proxies_names[i]}")
-        oi = yf.Ticker(ticker)
-        news = oi.news
-        for article in news[0:3]:
-            st.markdown(f"#### {article["title"]}")
-            st.markdown(article['relatedTickers'])
-            st.markdown(article['link'])
-            
-        st.markdown("-----")
-        i = i+1
     
-     
+            
+        
+             
 with st.sidebar:
     selected = option_menu(
         menu_title = 'Models',
         options = [ 'DCF Model', 'Multiples Model', 'K Means Clustering', 'Sector Screener','Portfolio Variance Calculator'],
         orientation='vertical',
         icons = ['house', 'buildings', 'lock', 'buildings','buildings' ])
-
-
     
 if selected == 'DCF Model':
     dcfModel()
