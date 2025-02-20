@@ -66,14 +66,19 @@ def risk_analysis():
             alpha = []
             stds = []
             w = []
-
-            for i in (range(5000)):
+            num_of_iterations = 30000
+            
+            progress_num = 0
+            loading_bar = st.progress(0, text="Simulating Portfolio's")
+            for i in (range(30000)):
                 weights = np.random.random(len(diffirenced_data.columns))
                 weights /= weights.sum()
                 alpha.append((np.dot(diffirenced_data.mean(), weights)*10000))
                 portfolio_variance = np.dot(weights, np.dot(covariance_matrix, weights))
                 stds.append((math.sqrt(portfolio_variance)*np.sqrt(252))*10)
                 w.append(weights)
+                progress_num = progress_num +1
+                loading_bar.progress(progress_num/num_of_iterations)
             
             fig = go.Figure()
             fig.add_trace(go.Scatter(x = stds, y = alpha, mode='markers',marker=dict(color='blue',size=3), name="Random Portfolio's" ))
@@ -146,7 +151,7 @@ def dcfModel():
     income_stmnt_Metrics = income_stmnt.columns.to_list()
     balance_sheet_stmnt_Metrics = balance_sheet_stmnt.columns.to_list()
     all_metrics = cash_flow_stmnt_Metrics+income_stmnt_Metrics+balance_sheet_stmnt_Metrics
-    st.dataframe(income_stmnt)
+    #st.dataframe(income_stmnt)
     
     metric_name = st.selectbox('Select Line Item to Plot', options=all_metrics, placeholder='Select Line Item')
     if metric_name in cash_flow_stmnt_Metrics:
@@ -249,7 +254,7 @@ def dcfModel():
         tbill = yf.Ticker("^IRX")
     else:
         tbill = yf.Ticker("^TNX")    
-    st.markdown(tbill)
+    #st.markdown(tbill)
     rf = tbill.info.get('previousClose')/100
 
     
@@ -824,11 +829,8 @@ def sector_screener():
         st.plotly_chart(performance_fig)
     
     
-    st.markdown("-----")
-    
-            
-        
-             
+    st.markdown("-----")    
+                
 with st.sidebar:
     selected = option_menu(
         menu_title = 'Models',
@@ -850,6 +852,7 @@ if selected == 'Sector Screener':
     
 if selected == 'Portfolio Variance Calculator':
     risk_analysis()
+    
 
 
 
