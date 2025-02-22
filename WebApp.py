@@ -507,7 +507,8 @@ def multiplesModel():
         st.markdown(f'#### Valuation: ${round(valuation4,2)}')
         st.markdown("---")
         st.markdown(f"### Average of All Valuations:$ {round(((valuation1+valuation2+valuation3+valuation4)/(4)),2)}")
-        st.markdown(f'### Current Price: ${ticker_obj.info.get('currentPrice')}')
+        price_rn = ticker_obj.info.get('currentPrice')
+        st.markdown(f'### Current Price: ${price_rn}')
         
         st.markdown("# Summary")
         
