@@ -8,3 +8,4 @@ scikit-learn
 stqdm
 streamlit_extras
 plotly_express
+--upgrade yfinance
