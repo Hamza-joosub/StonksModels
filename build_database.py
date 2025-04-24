@@ -11,14 +11,19 @@ sp500_list = sp500_table['Symbol'].to_list()
 
 data = []
 
+df = pd.read_csv("JSE_stocks_FMP.csv")
+df
+jse_stock_names = df['symbol'].to_list()
+jse_stock_names
 
 
-for ticker in tqdm(sp500_list):
+
+for ticker in tqdm(jse_stock_names):
     stock = yf.Ticker(ticker)
     
     # Extract relevant financial metrics
     try:
-        market_cap = stock.info["marketCap"]
+        #market_cap = stock.info["marketCap"]
         revenue_growth = stock.info.get("revenueGrowth", None)
         earningsGrowth = stock.info.get("earningsGrowth", None)
         enterpriseToEbitda = stock.info.get("earningsGrowth", None)
@@ -39,10 +44,10 @@ for ticker in tqdm(sp500_list):
         
         
         
-        data.append([ticker,market_cap,revenue_growth,earningsGrowth,enterpriseToEbitda,enterpriseToRevenue,ebitda_margin,operatingMargins,de, trailling_pe, roe,roa,industry,sector, longname,beta,trailingPegRatio,totalRevenue,ebitda ])
+        data.append([ticker,revenue_growth,earningsGrowth,enterpriseToEbitda,enterpriseToRevenue,ebitda_margin,operatingMargins,de, trailling_pe, roe,roa,industry,sector, longname,beta,trailingPegRatio,totalRevenue,ebitda ])
         
         
     except Exception as e:
         print(f"Error fetching data for {ticker}: {e}")
-df = pd.DataFrame(data, columns=['Company', 'Market Cap', 'Rev Growth', 'NI Growth', 'EV/EBITDA', 'EV/Rev', 'EBITDA Margin', 'Operating Margin', 'Debt/Equity', 'PE', 'ROE','ROA', 'Industry', 'Sector', 'Name', 'Beta','Trailing PEG Ratio', 'Revenue', 'EBITDA' ])
+df = pd.DataFrame(data, columns=['Company', 'Rev Growth', 'NI Growth', 'EV/EBITDA', 'EV/Rev', 'EBITDA Margin', 'Operating Margin', 'Debt/Equity', 'PE', 'ROE','ROA', 'Industry', 'Sector', 'Name', 'Beta','Trailing PEG Ratio', 'Revenue', 'EBITDA' ])
 df.to_csv("Multiples_Database")

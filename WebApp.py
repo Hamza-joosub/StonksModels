@@ -1,9 +1,7 @@
 from datetime import datetime
 import pandas as pd
 import streamlit as st
-import yfinance as yf
 import plotly.graph_objects as go
-from streamlit_option_menu import option_menu
 import math
 import numpy as np
 import sklearn.preprocessing
@@ -13,9 +11,13 @@ import subprocess
 import time
 import requests
 import os
-from stqdm import stqdm
+#from stqdm import stqdm
 from sklearn.manifold import TSNE
-import plotly_express as px
+#import plotly_express as px
+import yfinance as yf
+from streamlit_option_menu import option_menu
+∏
+from streamlit_option_menu import option_menu
 st.set_page_config(layout="wide")
 OLLAMA_API_URL = "http://127.0.0.1:11434/api/generate"  
 
@@ -66,11 +68,11 @@ def risk_analysis():
             alpha = []
             stds = []
             w = []
-            num_of_iterations = 30000
+            num_of_iterations = 130000
             
             progress_num = 0
             loading_bar = st.progress(0, text="Simulating Portfolio's")
-            for i in (range(30000)):
+            for i in (range(130000)):
                 weights = np.random.random(len(diffirenced_data.columns))
                 weights /= weights.sum()
                 alpha.append((np.dot(diffirenced_data.mean(), weights)*10000))
@@ -124,9 +126,9 @@ def dcfModel():
     sharesOutstanding =  info.get('sharesOutstanding')
     name = info.get('longName')
     currentPrice = info.get('currentPrice')
-    targetHighPrice = info.get('targetHighPrice')
-    targetLowPrice = info.get('targetLowPrice')
-    targetMeanPrice = info.get('targetMeanPrice')
+    #targetHighPrice = info.get('targetHighPrice')
+    #targetLowPrice = info.get('targetLowPrice')
+    #targetMeanPrice = info.get('targetMeanPrice')
     
     # Display Basic Info
     
@@ -137,9 +139,9 @@ def dcfModel():
     stock_price_fig.add_trace(go.Scatter(x = prices_df['Date'], y=prices_df['Close']))
     stock_price_fig.update_xaxes(title_text = 'Date')
     stock_price_fig.update_yaxes(title_text = 'Price')
-    stock_price_fig.add_hline(y = float(targetMeanPrice), line_color='orange', annotation_text=f'Mean target Price: {targetMeanPrice}',line_dash = 'dot')
-    stock_price_fig.add_hline(y = float(targetLowPrice), line_color='red', annotation_text=f'Low target Price: {targetLowPrice}',line_dash = 'dot')
-    stock_price_fig.add_hline(y = float(targetHighPrice), line_color='green', annotation_text=f'High target Price: {targetHighPrice}', line_dash = 'dot')
+    #stock_price_fig.add_hline(y = float(targetMeanPrice), line_color='orange', annotation_text=f'Mean target Price: {targetMeanPrice}',line_dash = 'dot')
+    #stock_price_fig.add_hline(y = float(targetLowPrice), line_color='red', annotation_text=f'Low target Price: {targetLowPrice}',line_dash = 'dot')
+    #stock_price_fig.add_hline(y = float(targetHighPrice), line_color='green', annotation_text=f'High target Price: {targetHighPrice}', line_dash = 'dot')
     st.plotly_chart(stock_price_fig)
     
     st.markdown(f"{description}")
@@ -681,9 +683,9 @@ def start_ollama():
 def sector_screener():
     st.markdown("# Sector Screener")
     st.markdown("## Sector Metrics")
-    df = pd.read_csv("Multiples_Database.csv")
+    df = pd.read_csv("Multiples_Database_JSE.csv")
     df = df.drop(columns = ['Unnamed: 0'])
-    df = df.dropna()
+    #df = df.dropna()
     list_of_metrics = df.columns.to_list()
     list_of_metrics.remove('Company')
     list_of_metrics.remove('Industry')
