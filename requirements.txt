@@ -1,4 +1,4 @@
-yfinance
+yfinance==0.2.54
 plotly
 pandas
 streamlit_option_menu
@@ -8,4 +8,3 @@ scikit-learn
 stqdm
 streamlit_extras
 plotly_express
---upgrade yfinance
