@@ -16,7 +16,7 @@ from sklearn.manifold import TSNE
 #import plotly_express as px
 import yfinance as yf
 from streamlit_option_menu import option_menu
-∏
+
 from streamlit_option_menu import option_menu
 st.set_page_config(layout="wide")
 OLLAMA_API_URL = "http://127.0.0.1:11434/api/generate"  
@@ -833,11 +833,49 @@ def sector_screener():
     
     
     st.markdown("-----")    
-                
+       
+def testportfolios():
+    stock_list_pd = pd.read_pickle("StockList")
+    num_portfolios = st.number_input("Number of Portfolio's", min_value=2, max_value=5, step=1)
+    st.title("📊 Portfolio Comparison Builder")
+
+    
+    portfolios = {}
+
+    with st.form("PortfolioForm"):
+        portfolio_data = []
+        for i in range(num_portfolios):
+            st.markdown(f"---\n### Portfolio {i + 1}")
+            
+            name = st.text_input(f"Name of Portfolio {i + 1}", key=f"name_{i}")
+            
+            tickers_input = st.multiselect("Enter Tickers", options=stock_list_pd, key=np.random.randint(0,10000))
+            st.markdown(tickers_input)
+            #tickers = [t.strip().upper() for t in tickers_input.split(',') if t.strip()]
+
+            weights_input = st.text_input(f"Enter weights (comma-separated, optional for equal weights):", key=f"weights_{i}")
+            weights = [float(w.strip()) for w in weights_input.split(',')] if weights_input else None
+
+            portfolio_data.append((name, tickers_input, weights))
+            # Store the portfolio config
+        submitted122 = st.form_submit_button("Build")
+            
+    #st.form_submit_button.button("✅ Build & Compare Portfolios")
+        # 3. Display summary and trigger calculation
+    if submitted122:
+        st.markdown(portfolio_data)
+
+        st.success("✅ Portfolios successfully built!")
+        
+
+            
+    
+    
+             
 with st.sidebar:
     selected = option_menu(
         menu_title = 'Models',
-        options = [ 'DCF Model', 'Multiples Model', 'K Means Clustering', 'Sector Screener','Portfolio Variance Calculator'],
+        options = [ 'DCF Model', 'Multiples Model', 'K Means Clustering', 'Sector Screener','Portfolio Variance Calculator', 'Portfoliometer'],
         orientation='vertical',
         icons = ['house', 'buildings', 'lock', 'buildings','buildings' ])
     
@@ -856,7 +894,8 @@ if selected == 'Sector Screener':
 if selected == 'Portfolio Variance Calculator':
     risk_analysis()
     
-
+if selected == "Portfoliometer":
+    testportfolios()
 
 
 
