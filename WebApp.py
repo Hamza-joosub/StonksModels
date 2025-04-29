@@ -837,6 +837,8 @@ def sector_screener():
 def testportfolios():
     stock_list_pd = pd.read_pickle("StockList")
     num_portfolios = st.number_input("Number of Portfolio's", min_value=2, max_value=5, step=1)
+    time_start = st.date_input("input Start Data")
+    st.markdown(time_start)
     st.title("📊 Portfolio Comparison Builder")
 
     
@@ -849,7 +851,7 @@ def testportfolios():
             
             name = st.text_input(f"Name of Portfolio {i + 1}", key=f"name_{i}")
             
-            tickers_input = st.multiselect("Enter Tickers", options=stock_list_pd, key=np.random.randint(0,10000))
+            tickers_input = st.multiselect("Enter Tickers", options=stock_list_pd, key=i)
             st.markdown(tickers_input)
             #tickers = [t.strip().upper() for t in tickers_input.split(',') if t.strip()]
 
@@ -863,8 +865,11 @@ def testportfolios():
     #st.form_submit_button.button("✅ Build & Compare Portfolios")
         # 3. Display summary and trigger calculation
     if submitted122:
-        st.markdown(portfolio_data)
-
+        
+        st.dataframe(pd.DataFrame(portfolio_data, columns=["Portfolio Name", "Tickers", "Weightings"]))
+        returns = []
+        
+        
         st.success("✅ Portfolios successfully built!")
         
 
