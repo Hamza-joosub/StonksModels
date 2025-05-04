@@ -13,7 +13,7 @@ import requests
 import os
 #from stqdm import stqdm
 from sklearn.manifold import TSNE
-#import plotly_express as px
+import plotly_express as px
 import yfinance as yf
 from streamlit_option_menu import option_menu
 
@@ -855,7 +855,7 @@ def testportfolios():
             st.markdown(tickers_input)
             #tickers = [t.strip().upper() for t in tickers_input.split(',') if t.strip()]
 
-            weights_input = st.text_input(f"Enter weights (comma-separated, optional for equal weights):", key=f"weights_{i}")
+            weights_input = st.text_input(f"Enter weights: e.g: 0.5,0.5", key=f"weights_{i}")
             weights = [float(w.strip()) for w in weights_input.split(',')] if weights_input else None
 
             portfolio_data.append((name, tickers_input, weights))
@@ -865,12 +865,25 @@ def testportfolios():
     #st.form_submit_button.button("✅ Build & Compare Portfolios")
         # 3. Display summary and trigger calculation
     if submitted122:
-        
-        st.dataframe(pd.DataFrame(portfolio_data, columns=["Portfolio Name", "Tickers", "Weightings"]))
-        returns = []
-        
-        
         st.success("✅ Portfolios successfully built!")
+        portfolio_data_df = pd.DataFrame(portfolio_data, columns=["Portfolio Name", "Tickers", "Weightings"])
+        compare_portfolios_plot = go.Figure()
+        
+        for portfolio_index in portfolio_data_df.index:
+            tickers = portfolio_data_df.iloc[portfolio_index,1]
+            weights = portfolio_data_df.iloc[portfolio_index,2]
+            temp_df = yf.download(tickers=tickers, start=time_start, interval='1d')["Close"]
+            temp_df = (temp_df.pct_change())*100
+            temp_df.dropna(inplace=True)
+            temp_df = temp_df.reset_index()
+            temp_df['Portfolio_Return'] = temp_df[tickers].dot(weights)
+            initial_value = 100
+            temp_df['Portfolio_Value'] = (1 + (temp_df['Portfolio_Return'] / 100)).cumprod() * initial_value
+            compare_portfolios_plot.add_trace(go.Scatter(x = temp_df['Date'], y = temp_df['Portfolio_Value'], 
+                                                        name=f'{portfolio_data_df.iloc[portfolio_index,0]}'))
+        
+        st.plotly_chart(compare_portfolios_plot)
+        
         
 
             
