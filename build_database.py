@@ -50,4 +50,4 @@ for ticker in tqdm(jse_stock_names):
     except Exception as e:
         print(f"Error fetching data for {ticker}: {e}")
 df = pd.DataFrame(data, columns=['Company', 'Rev Growth', 'NI Growth', 'EV/EBITDA', 'EV/Rev', 'EBITDA Margin', 'Operating Margin', 'Debt/Equity', 'PE', 'ROE','ROA', 'Industry', 'Sector', 'Name', 'Beta','Trailing PEG Ratio', 'Revenue', 'EBITDA' ])
-df.to_csv("Multiples_Database")
+df.to_csv("Multiples_Database_JSE_NEW.csv")

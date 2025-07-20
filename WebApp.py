@@ -17,11 +17,11 @@ import plotly_express as px
 import yfinance as yf
 from streamlit_option_menu import option_menu
 
-from streamlit_option_menu import option_menu
 st.set_page_config(layout="wide")
 OLLAMA_API_URL = "http://127.0.0.1:11434/api/generate"  
+API_KEY = "6ulfs8VItWZcKZTMzNJxwmikpQvSF1cI"
 
-def risk_analysis():
+def Portfolio_Variance_Calculator():
     stock_list_pd = pd.read_pickle("StockList")
     Tickers = st.multiselect("Choose Stocks", options=stock_list_pd["symbol"].to_list())
     weights = []
@@ -30,8 +30,21 @@ def risk_analysis():
         
     if len(Tickers) > 1:
         st.markdown("## Portfolio Correlation")
-        rawData = yf.download(tickers=Tickers, start=start, end=end, interval='1d')["Close"]
-        diffirenced_data = rawData.pct_change()
+        temp_df = pd.DataFrame(requests.get(f"https://financialmodelingprep.com/stable/historical-price-eod/light?symbol={Tickers[0]}&apikey={API_KEY}").json())
+        temp_df = temp_df.drop(columns=['symbol', 'volume'])
+        temp_df['date'] = pd.to_datetime(temp_df['date'])
+        temp_df = temp_df.set_index('date')
+        raw_data = pd.DataFrame(temp_df.index)
+        raw_data = raw_data.set_index("date")
+        
+        for tick in Tickers:
+            st.markdown(tick)
+            temp_df = pd.DataFrame(requests.get(f"https://financialmodelingprep.com/stable/historical-price-eod/light?symbol={tick}&apikey={API_KEY}").json())
+            temp_df = temp_df.drop(columns=['symbol', 'volume'])
+            temp_df['date'] = pd.to_datetime(temp_df['date'])
+            temp_df = temp_df.set_index('date')
+            raw_data[f"{tick}"] = temp_df["price"].values.tolist()
+        diffirenced_data = raw_data.pct_change()
         corr_matrix = diffirenced_data.corr()
         fig = px.imshow(corr_matrix, aspect='auto', color_continuous_scale='sunsetdark')
         st.plotly_chart(fig)
@@ -51,8 +64,8 @@ def risk_analysis():
             
             # Display each stock's volatility
             for ticker in Tickers:
-                volatility_annualized = rawData[ticker].pct_change().std() * np.sqrt(252)  # annualized volatility
-                volatility_daily = rawData[ticker].pct_change().std()
+                volatility_annualized = raw_data[ticker].pct_change().std() * np.sqrt(252)  # annualized volatility
+                volatility_daily = raw_data[ticker].pct_change().std()
                 st.markdown(f"Annualized Volatility of {ticker}: {round(volatility_annualized * 100, 2)}%, With Daily Volatility of {ticker}: {round(volatility_daily * 100, 2)}%")
                 st.markdown(f"")
             
@@ -108,54 +121,46 @@ def risk_analysis():
             st.dataframe(portfolio_weights)
             
 def dcfModel():
-    #Get Statement and Ticker Data
-    stock_list_pd = pd.read_pickle("StockList") #must Get from Database
-    st.markdown('# Enter Stock Name')
-    tickername = st.selectbox("Input Stock Ticker", options=stock_list_pd["symbol"].to_list(), index = stock_list_pd["symbol"].to_list().index("AAPL") )
-    ticker = yf.Ticker(tickername)
-    cash_flow_stmnt = ((ticker.cash_flow).T)
-    income_stmnt = (ticker.income_stmt).T
-    balance_sheet_stmnt = (ticker.balance_sheet).T
-    info = ticker.info
+    ticker = st.text_input(label="Enter ticker", placeholder='AAPL')
     
-    # Assign Info To Variables
-    industry = info.get('industry')
-    sector = info.get('sector')
-    description = info.get('longBusinessSummary')
-    beta = info.get('beta')
-    sharesOutstanding =  info.get('sharesOutstanding')
-    name = info.get('longName')
-    currentPrice = info.get('currentPrice')
-    #targetHighPrice = info.get('targetHighPrice')
-    #targetLowPrice = info.get('targetLowPrice')
-    #targetMeanPrice = info.get('targetMeanPrice')
+    company_profile = requests.get(f"https://financialmodelingprep.com/stable/profile?symbol={ticker}&apikey={API_KEY}").json()[0]
+    symbol = company_profile['symbol']
+    currentPrice = company_profile['price']
+    marketCap =company_profile['marketCap']
+    changePercentage = company_profile['changePercentage']
+    exchange = company_profile['exchange']
+    industry = company_profile['industry']
+    description = company_profile['description']
+    sector = company_profile['sector']
+    name = company_profile['companyName']
+    beta = company_profile['beta']
     
-    # Display Basic Info
+    income_stmnt = pd.DataFrame(requests.get(f"https://financialmodelingprep.com/stable/income-statement?symbol={ticker}&apikey={API_KEY}").json())
+    income_stmnt = income_stmnt.drop(columns=['symbol', 'reportedCurrency', 'cik','date','filingDate', 'acceptedDate', 'period' ])
+    income_stmnt = income_stmnt.set_index('fiscalYear')
+    income_stmnt_Metrics = income_stmnt.columns.values.tolist()
     
-    st.markdown(f'# {name}')
-    prices_df = ticker.history(start ='2020-01-01', auto_adjust=False)['Close']
-    prices_df = prices_df.reset_index()
-    stock_price_fig = go.Figure()
-    stock_price_fig.add_trace(go.Scatter(x = prices_df['Date'], y=prices_df['Close']))
-    stock_price_fig.update_xaxes(title_text = 'Date')
-    stock_price_fig.update_yaxes(title_text = 'Price')
-    #stock_price_fig.add_hline(y = float(targetMeanPrice), line_color='orange', annotation_text=f'Mean target Price: {targetMeanPrice}',line_dash = 'dot')
-    #stock_price_fig.add_hline(y = float(targetLowPrice), line_color='red', annotation_text=f'Low target Price: {targetLowPrice}',line_dash = 'dot')
-    #stock_price_fig.add_hline(y = float(targetHighPrice), line_color='green', annotation_text=f'High target Price: {targetHighPrice}', line_dash = 'dot')
-    st.plotly_chart(stock_price_fig)
     
-    st.markdown(f"{description}")
-    st.markdown(f'industry: {industry}, sector: {sector}')
+    sharesOutstanding = income_stmnt.iloc[0,-2]
     
-    #Plot Line Items
-    st.markdown('### Plot Line Items')
-    cash_flow_stmnt_Metrics = cash_flow_stmnt.columns.to_list()
-    income_stmnt_Metrics = income_stmnt.columns.to_list()
-    balance_sheet_stmnt_Metrics = balance_sheet_stmnt.columns.to_list()
-    all_metrics = cash_flow_stmnt_Metrics+income_stmnt_Metrics+balance_sheet_stmnt_Metrics
-    #st.dataframe(income_stmnt)
+    balance_sheet_stmnt = pd.DataFrame(requests.get(f"https://financialmodelingprep.com/stable/balance-sheet-statement?symbol={ticker}&apikey={API_KEY}").json())
+    balance_sheet_stmnt = balance_sheet_stmnt.drop(columns=['symbol','fiscalYear', 'reportedCurrency', 'cik','date','filingDate', 'acceptedDate', 'period' ])
     
-    metric_name = st.selectbox('Select Line Item to Plot', options=all_metrics, placeholder='Select Line Item')
+    
+    
+    cash_flow_stmnt = pd.DataFrame(requests.get(f"https://financialmodelingprep.com/stable/cash-flow-statement?symbol={ticker}&apikey={API_KEY}").json())
+    cash_flow_stmnt = cash_flow_stmnt.drop(columns=['symbol', 'reportedCurrency', 'cik','date','filingDate', 'acceptedDate', 'period' ])
+    cash_flow_stmnt = cash_flow_stmnt.set_index('fiscalYear')
+    cash_flow_stmnt_Metrics = cash_flow_stmnt.columns.values.tolist()
+    
+    statement = pd.concat([income_stmnt,balance_sheet_stmnt,cash_flow_stmnt], axis=1)
+    statement = statement.iloc[::-1].reset_index(drop=True)
+    statements_columns = statement.columns.values.tolist()
+    
+   
+
+    
+    metric_name = st.selectbox('Select Line Item to Plot', options=statements_columns, placeholder='Select Line Item')
     if metric_name in cash_flow_stmnt_Metrics:
         metric_no_na = cash_flow_stmnt[metric_name]
         metric_no_na = metric_no_na.dropna()
@@ -217,7 +222,7 @@ def dcfModel():
         meric_ot_fig.update_yaxes(title_text = metric_name)
         meric_ot_fig.update_layout(title_text=f'{metric_name} Over Time With CAGR: {cagr} %')
         
-    st.plotly_chart(meric_ot_fig)
+    st.plotly_chart(meric_ot_fig,use_container_width=True)
 
     st.markdown("## Future Cash Flows")
     #Ask for Forecast Length
@@ -227,10 +232,10 @@ def dcfModel():
     if cagr_toggle:
         cagr_fcf = st.number_input('Input CAGR Of Free Cash Flows', step=0.5)
         g = (st.number_input(f'Terminal Growth Rate',step=0.5))/100
-        future_Cash_Flows = {'Free Cash Flow Current': cash_flow_stmnt['Free Cash Flow'].to_list()[0]
+        future_Cash_Flows = {'Free Cash Flow Current': cash_flow_stmnt['freeCashFlow'].to_list()[0]
                 }
         for i in range(1,n+1):
-            future_Cash_Flows[f'Forecast {i+1}'] =cash_flow_stmnt['Free Cash Flow'].to_list()[0]*(1+cagr_fcf/100)**i
+            future_Cash_Flows[f'Forecast {i+1}'] =cash_flow_stmnt['freeCashFlow'].to_list()[0]*(1+cagr_fcf/100)**i
           
             
     else:
@@ -238,9 +243,9 @@ def dcfModel():
         for i in range(1,n+1):
                 temp_FCF_Growth = st.number_input(f'Free Cash Flow Growth Forecast {i}', step=0.5)
                 fcf_Growth_list.append(temp_FCF_Growth)
-        curr_FCF = cash_flow_stmnt['Free Cash Flow'].to_list()[0]
+        curr_FCF = cash_flow_stmnt['freeCashFlow'].to_list()[0]
         g = (st.number_input(f'Terminal Growth Rate', step=0.5))/100
-        future_Cash_Flows = {'Free Cash Flow Current': cash_flow_stmnt['Free Cash Flow'].to_list()[0]
+        future_Cash_Flows = {'Free Cash Flow Current': cash_flow_stmnt['freeCashFlow'].to_list()[0]
                 }
         temp_fcf = curr_FCF
         for i in range(0,len(fcf_Growth_list)):
@@ -251,32 +256,26 @@ def dcfModel():
     
     st.markdown("## Cost of Equity(USING CAPM)")
     #Get Risk Free Rate
-    risk_free_rate = st.selectbox('Choose Risk Free Rate Proxy', options=['3 Month Treasury Yield', '10 Year Treasury Yield'])
+    risk_free_rate = st.selectbox('Choose Risk Free Rate Proxy', options=['10 Year Treasury Yield'])
     if risk_free_rate == '3 Month Treasury Yield':
         tbill = yf.Ticker("^IRX")
     else:
-        tbill = yf.Ticker("^TNX")    
-    #st.markdown(tbill)
-    rf = tbill.info.get('previousClose')/100
+        tbill = requests.get(f'https://financialmodelingprep.com/api/v4/treasury?tenor=10y&apikey={API_KEY}').json()[0]["month1"]
+    
+    st.markdown(tbill)
+    rf = tbill/100
 
     
     #get Market Return
-    market_index_long_name = st.selectbox('Choose Market Index', options=['S&P500', 'JSE Top 40'])
+    market_index_long_name = st.selectbox('Choose Market Index', options=['S&P500'])
     annualized_over = st.selectbox('Choose How long To annualize Returns over', options=['1 Year', '5 Years', '10 Years'])
     if market_index_long_name == 'S&P500':
-        market_index = '^SP500TR'
-    elif market_index_long_name == 'JSE Top 40':
-        market_index = '^J200.JO'
+        spy_returns = pd.DataFrame(requests.get(f'https://financialmodelingprep.com/api/v3/historical-price-full/^GSPC?serietype=line&apikey={API_KEY}').json()['historical'])
+        spy_returns = spy_returns.iloc[0:2500]
+        rm = (spy_returns.iloc[0,1]/spy_returns.iloc[-1,1])**(1/10)-1
+    
         
-    if annualized_over == '1 Year':
-        market_data = yf.Ticker(market_index).history(period="1y")
-        rm = (market_data["Close"].iloc[-1] / market_data["Close"].iloc[0]) - 1
-    elif annualized_over == '5 Years':
-        market_data = yf.Ticker(market_index).history(period="5y")
-        rm = (market_data["Close"].iloc[-1] / market_data["Close"].iloc[0]) ** (1/5) - 1
-    else:
-        market_data = yf.Ticker(market_index).history(period="10y")
-        rm = (market_data["Close"].iloc[-1] / market_data["Close"].iloc[0]) ** (1/10) - 1
+    
     
     st.markdown(f'Risk Free Rate({risk_free_rate}): {round(rf*100,3)} %')
     st.markdown(f'Market Return({market_index_long_name}) {round(rm*100,3)} %')
@@ -285,11 +284,11 @@ def dcfModel():
     st.markdown(f'##### Cost Of Equity: {round(rc*100,2)} %')
     
     st.markdown("## Cost of Debt")
-    if math.isnan(income_stmnt['Interest Expense'].to_list()[0]):
+    if math.isnan(income_stmnt['interestExpense'].to_list()[0]):
         interest_expense = 0
     else:
-        interest_expense = income_stmnt['Interest Expense'].to_list()[0]
-    total_debt = balance_sheet_stmnt['Total Debt'].to_list()[0]
+        interest_expense = income_stmnt['interestExpense'].to_list()[0]
+    total_debt = balance_sheet_stmnt['totalDebt'].to_list()[0]
     rd = (interest_expense/total_debt)
   
     st.markdown(f'Interest Expense: {interest_expense}')
@@ -297,7 +296,7 @@ def dcfModel():
     st.markdown(f'##### Cost of Debt: {round(rd*100,2)} %')
     
     st.markdown("## Weighted Average Cost of Capital")
-    total_Equity = balance_sheet_stmnt['Total Equity Gross Minority Interest'].to_list()[0]
+    total_Equity = balance_sheet_stmnt['totalEquity'].to_list()[0]
     st.markdown(f"Total Debt: {total_debt}")
     st.markdown(f"Total Equity: {total_Equity}")
     wacc = ((total_Equity/(total_Equity+total_debt))*rc)+((total_debt/(total_Equity+total_debt))*rd)
@@ -311,7 +310,7 @@ def dcfModel():
         print(future_cash_Flows_list[t])
         pv = pv + future_cash_Flows_list[t]/(1+wacc)**t
     ev = pv+(tv/(1+wacc)**(len(future_cash_Flows_list)+1))
-    net_debt = balance_sheet_stmnt['Net Debt'].to_list()[0]
+    net_debt = balance_sheet_stmnt['netDebt'].to_list()[0]
     st.markdown(f'##### Equity Value: {round(ev,0)}') 
     
     st.markdown('## Intrinsic Value per Sare')
@@ -331,7 +330,7 @@ def dcfModel():
     st.markdown("# Summary")
     
     if len(fcf_Growth_list) == 0:
-        user_prompt = f"This is a DCF Model to value {tickername}, The current free cash flow is: {cash_flow_stmnt['Free Cash Flow'].to_list()[0]}, The user inputted a {cagr_fcf} Compounded annual growth rate of FCF over the next {n} years, the terminal growth rate is {g*100}%,WACC is calulcated by CAPM where the risk free rate used is {risk_free_rate}%,The market return is the return of the {market_index_long_name} annaulised over {annualized_over} and the cost of debt is calculated and thus the WACC being: {round(wacc*100,2)},The intrinsic value of the share is calculated as {iv}. Here are the previous years cash flow for {tickername}: {cash_flow_stmnt['Free Cash Flow'].to_list()}. Give an in depth analysis of the Model, Provide feedback if changes of any inputs are needed"
+        user_prompt = f"This is a DCF Model to value {ticker}, The current free cash flow is: {cash_flow_stmnt['freeCashFlow'].to_list()[0]}, The user inputted a {cagr_fcf} Compounded annual growth rate of FCF over the next {n} years, the terminal growth rate is {g*100}%,WACC is calulcated by CAPM where the risk free rate used is {risk_free_rate}%,The market return is the return of the {market_index_long_name} annaulised over {annualized_over} and the cost of debt is calculated and thus the WACC being: {round(wacc*100,2)},The intrinsic value of the share is calculated as {iv}. Here are the previous years cash flow for {ticker}: {cash_flow_stmnt['freeCashFlow'].to_list()}. Give an in depth analysis of the Model, Provide feedback if changes of any inputs are needed"
 
     if st.button("Generate Response"):
         payload = {
@@ -351,311 +350,6 @@ def dcfModel():
 
         except requests.exceptions.ConnectionError:
             st.error("❌ Ollama server is not reachable. Make sure it is running.")
-
-def multiplesModel():
-    stock_list_pd = pd.read_pickle("StockList")
-    target_ticker_string = st.selectbox('Input Target Stock', options=stock_list_pd["symbol"].to_list(), index = 29105)
-    comparables_tickers = st.multiselect('Select Comparable Stocks', options=stock_list_pd["symbol"].to_list())
-    comparables_tickers.append(target_ticker_string)
-    ticker_obj = yf.Ticker(target_ticker_string)
-    st.markdown(comparables_tickers)
-    if len(comparables_tickers) == 1:
-        st.markdown("Input Tickers")
-    else:    
-        st.markdown('# Historical Multiples Vs Average')
-        
-
-        all_company_multiples_pe = pd.DataFrame()
-        all_company_multiples_ps = pd.DataFrame()
-        
-        for company in comparables_tickers:
-            target_ticker = yf.Ticker(company)
-
-            prices = pd.DataFrame(target_ticker.history(start='2020-01-01')['Close'])
-            prices.index = prices.index.date  
-
-            income_stmnt = target_ticker.income_stmt.T 
-            income_stmnt.index = income_stmnt.index.date
-
-            # Step 3: Forward-fill missing values in the diluted shares column
-            income_stmnt['Diluted Average Shares'].fillna(method='bfill', inplace=True)
-
-            # Step 4: Calculate EPS (Net Income / Diluted Shares)
-            income_stmnt['EPS'] = income_stmnt['Net Income'] / income_stmnt['Diluted Average Shares']
-            income_stmnt['RPS'] = income_stmnt['Total Revenue'] / income_stmnt['Diluted Average Shares']
-
-            all_dates = pd.date_range(start=min(prices.index.min(), income_stmnt.index.min()),
-                                end=max(prices.index.max(), income_stmnt.index.max()), freq='D')
-            
-            prices = prices.reindex(all_dates)
-            #prices['Close'].fillna(method='bfill', inplace=True)
-            
-            prices = prices.merge(income_stmnt[['EPS']], left_index=True, right_index=True, how='left')
-            prices = prices.merge(income_stmnt[['RPS']], left_index=True, right_index=True, how='left')
-            
-            prices = prices.fillna(method = 'ffill')
-            prices['Trailling PE'] = prices['Close']/prices['EPS']
-            
-            
-            prices['Trailling PS'] = prices['Close']/prices['RPS']
-
-            
-            all_company_multiples_pe[f'{company}'] = prices['Trailling PE']
-            all_company_multiples_ps[f'{company}'] = prices['Trailling PS']
-        
-        
-        all_company_multiples_pe['Average'] = (all_company_multiples_pe.sum(axis=1))/(len(comparables_tickers))
-        all_company_multiples_ps['Average'] = (all_company_multiples_ps.sum(axis=1))/(len(comparables_tickers))
-        
-        with st.form('Plot Historic Multiples'):
-            multiple_to_plot = st.selectbox('Select Multiples to Plot', options = ['PE', 'PS'])
-            confirm = st.form_submit_button('Plot')
-            if confirm:
-                if multiple_to_plot == 'PE':
-                    pe_fig = go.Figure()
-                    pe_fig.add_trace(go.Scatter(x =all_company_multiples_pe.index, y=all_company_multiples_pe[f'{target_ticker_string}'], name=f'{target_ticker_string} ' ))
-                    pe_fig.add_trace(go.Scatter(x =all_company_multiples_pe.index, y=all_company_multiples_pe[f'Average'], name=f'Average ' ))
-                    st.plotly_chart(pe_fig)
-                elif multiple_to_plot == 'PS':
-                    ps_fig = go.Figure()
-                    ps_fig.add_trace(go.Scatter(x =all_company_multiples_ps.index, y=all_company_multiples_ps[f'{target_ticker_string}'], name=f'{target_ticker_string} ' ))
-                    ps_fig.add_trace(go.Scatter(x =all_company_multiples_ps.index, y=all_company_multiples_ps[f'Average'], name=f'Average ' )) 
-                    st.plotly_chart(ps_fig)
-        st.markdown("---")
-        st.markdown('# Snapshot of Multiples Vs Average')           
-        multiples_list = ["Forward PE", "Trailing PE", "EV To EBITDA", "EV To Revenue", "PS"]
-        multiples_df = pd.DataFrame()
-        multiples_df['Multiple'] = multiples_list
-        multiples_df = multiples_df.set_index('Multiple')
-        
-        comparables_tickers.pop(-1)
-        
-        
-        for company in comparables_tickers:
-            ticker = yf.Ticker(company)
-            info = ticker.info
-            temp_list = []
-            fPE = temp_list.append(info.get('forwardPE'))
-            tPE = temp_list.append(info.get('trailingPE'))
-            evebitda = temp_list.append(info.get('enterpriseToEbitda'))
-            evrevenue = temp_list.append(info.get('enterpriseToRevenue'))
-            ps = temp_list.append(info.get('currentPrice')/info.get('revenuePerShare'))
-            multiples_df[f'{company}'] = temp_list
-            temp_list = []
-            
-        multiples_df['Average'] = (multiples_df.sum(axis=1))/(len(comparables_tickers))
-        multiples_df['Median'] = (multiples_df.median(axis=1))
-        st.dataframe(multiples_df)
-        
-        
-        multiples_df = multiples_df.T
-        
-        with st.form('Plot Multiples'):
-            multiple_to_plot = st.selectbox('Select Multiple to Plot', options = multiples_list)
-            confirm = st.form_submit_button('Plot')
-            if confirm:
-                multiple_bar_plot = go.Figure()
-                multiple_bar_plot.add_trace(go.Bar(x=multiples_df.index, y = multiples_df[multiple_to_plot]))
-                st.plotly_chart(multiple_bar_plot)
-        st.markdown("---")
-        st.markdown('# Valuation')
-        st.dataframe(multiples_df)
-        
-        st.markdown("## Forward PE Valuation")
-        
-        fpe = (multiples_df['Forward PE'].to_list()[-1])
-        feps = (ticker_obj.info.get("forwardEps"))
-        st.markdown(f"Forward PE: {fpe}")
-        st.markdown(f"Forward EPS: {feps}")
-        valuation1 = fpe*feps
-        st.markdown(f"#### Valuation: ${round(valuation1,2)}")
-        st.markdown("---")
-        
-        st.markdown("## Trailing PE Valuation")
-        
-        tpe = (multiples_df['Trailing PE'].to_list()[-1])
-        teps = (ticker_obj.info.get("trailingEps"))
-        st.markdown(f"Trailing PE: {tpe}")
-        st.markdown(f"Trailing EPS: {teps}")
-        valuation2 = tpe*teps
-        st.markdown(f"#### Valuation: ${round(valuation2,2)}")
-        st.markdown("---")
-        
-        
-        st.markdown("## EV/EBITDA Valuation")
-        
-        evebitda = (multiples_df['EV To EBITDA'].to_list()[-1])
-        ebitda = (ticker_obj.info.get("ebitda"))
-        st.markdown(f"EV To EBITDA: {evebitda}")
-        st.markdown(f"EBITDA: {ebitda}")
-        ev = evebitda*ebitda
-        st.markdown(f"Enterprise Value: {ev}")
-        equityValue = ev-(ticker_obj.info.get("totalDebt")-ticker_obj.info.get("totalCash"))
-        st.markdown(f"Equity Value: {equityValue}")
-        valuation3 = (equityValue/ticker_obj.info.get("sharesOutstanding"))
-        st.markdown(f'#### Valuation: ${round(valuation3,2)}')
-        st.markdown("---")
-        st.markdown("## EV/Revenue Valuation")
-        
-        evtorevenue = (multiples_df['EV To Revenue'].to_list()[-1])
-        revenue = (ticker_obj.info.get("totalRevenue"))
-        st.markdown(f"EV To Revenue: {evtorevenue}")
-        st.markdown(f"Revenue: {revenue}")
-        ev = evtorevenue*revenue
-        st.markdown(f"Enterprise Value: {ev}")
-        equityValue = ev-(ticker_obj.info.get("totalDebt")-ticker_obj.info.get("totalCash"))
-        st.markdown(f"Equity Value: {equityValue}")
-        valuation4 = (equityValue/ticker_obj.info.get("sharesOutstanding"))
-        st.markdown(f'#### Valuation: ${round(valuation4,2)}')
-        st.markdown("---")
-        st.markdown(f"### Average of All Valuations:$ {round(((valuation1+valuation2+valuation3+valuation4)/(4)),2)}")
-        price_rn = ticker_obj.info.get('currentPrice')
-        st.markdown(f'### Current Price: ${price_rn}')
-        
-        st.markdown("# Summary")
-        
-        user_prompt = f'''You are a financial analyst and are analyzing a company with the ticker symbol {target_ticker_string}.
-        You are using a Multiples Valuation model.
-        This is the list of comparable companies {comparables_tickers} you have used. 
-        Here are all the multiples of the comparable Companies {multiples_df.to_string()}. 
-        Here is the implied value of the stock using The Forward PE Multiple: {round(valuation1,2)}.
-        Here is the implied value of the stock using The Trailing PE Multiple: {round(valuation2,2)}.
-        Here is the implied value of the stock using The EV to Revenue Multiple: {round(valuation3,2)}.
-        here is the implied value of the stock using The EV to EBITDA Multiple: {round(valuation4,2)}.
-        Here is the Actual current price of the stock: {ticker_obj.info.get('currentPrice')}
-        Using this data provide a detailed explanation of whether the Company is fairly valued or not.
-        Also give any crticics of the model '''
-
-        if st.button("Generate Response"):
-            payload = {
-                "model": "llama3",
-                "prompt": user_prompt,
-                "stream": False
-            }
-
-            try:
-                response = requests.post(OLLAMA_API_URL, json=payload)
-
-                if response.status_code == 200:
-                    st.markdown("### 🤖 Ollama Response:")
-                    st.markdown(response.json()["response"])
-                else:
-                    st.error(f"❌ API Error: {response.status_code}")
-
-            except requests.exceptions.ConnectionError:
-                st.error("❌ Ollama server is not reachable. Make sure it is running.")
-
-def k_means_clustering():
-    st.markdown("# KMeans Clustering")
-    multiples_df = pd.read_csv('Multiples_Database.csv')
-    multiples_df = multiples_df.drop(columns = ['Unnamed: 0'])
-    k_inputted = st.number_input("Input Number of Clusters", min_value=2, step=1)
-    target_stock = st.selectbox("Enter Stock",options=multiples_df['Company'].to_list())
-    metrics = multiples_df.columns.to_list()
-    metrics.remove('Company')
-    metrics.remove('Sector')
-    metrics.remove('Name')
-    metrics.remove('Industry')
-    multiples_to_cluster_on = st.multiselect("Select Metrics to Cluster on", options=metrics)
-    
-        
-    if st.button("Cluster") :
-        df_no_nan = multiples_df.dropna()
-        df_no_nan = df_no_nan.reset_index(drop=True)
-        df_numeric = df_no_nan.drop(columns=["Company", "Industry", "Sector", "Name"])
-        metrics_to_drop = list(filter(lambda item: item not in multiples_to_cluster_on, df_numeric.columns.to_list()))
-        df_numeric = df_numeric.drop(columns=metrics_to_drop)
-        scaler = StandardScaler()
-        np_scaled = scaler.fit_transform(df_numeric)
-        df_scaled = pd.DataFrame(np_scaled,columns=df_numeric.columns)
-        df_scaled.insert(0, "Industry", df_no_nan["Industry"])
-        df_scaled.insert(0, "Sector", df_no_nan["Sector"])
-        df_scaled.insert(0, "Name", df_no_nan["Name"])
-        df_scaled.insert(0, "Company", df_no_nan["Company"])
-        for feature in df_scaled.columns.to_list()[4:]: 
-            df_scaled_no_outliers = df_scaled.drop(df_scaled[df_scaled[feature] > 35].index)
-        df_scaled_no_outliers = df_scaled_no_outliers.reset_index(drop=True)
-        df_scaled_no_outliers_numeric = df_scaled_no_outliers.drop(columns=["Company", "Industry", "Sector", "Name"])
-        inertia_list = []
-        for k in range(3,100):
-            kmeans = KMeans(n_clusters=k)
-            kmeans.fit(df_scaled_no_outliers_numeric)
-            inertia_list.append(kmeans.inertia_)
-        inertia_df = pd.DataFrame(inertia_list)
-        inertia_fig = go.Figure()
-        inertia_fig.add_trace(go.Scatter(x = inertia_df.index, y =inertia_df[0] ))
-        st.markdown("## Elbow Chart")
-        st.plotly_chart(inertia_fig)
-            
-        labels = KMeans(n_clusters=k_inputted).fit_predict(df_scaled_no_outliers_numeric)
-        df_scaled_no_outliers_numeric["Cluster"] = labels
-        df_scaled_no_outliers_numeric.insert(0,"Sector", df_scaled_no_outliers["Sector"])
-        df_scaled_no_outliers_numeric.insert(0,"Industry", df_scaled_no_outliers["Industry"])
-        df_scaled_no_outliers_numeric.insert(0,"Name", df_scaled_no_outliers["Name"])
-        df_scaled_no_outliers_numeric.insert(0,"Company", df_scaled_no_outliers["Company"])
-        df_final = df_scaled_no_outliers_numeric
-        st.dataframe(df_final)
-        target_cluster = df_final[df_final["Company"] == target_stock]["Cluster"].values[0]
-        target_sector = df_final[df_final["Company"] == target_stock]["Sector"].values[0]
-        target_industry = df_final[df_final["Company"] == target_stock]["Industry"].values[0]
-        comparable_Companies_list = df_final[df_final["Cluster"]==target_cluster]["Company"].to_list()
-        comparable_Sectors_list = df_final[df_final["Cluster"]==target_cluster]["Sector"].to_list()
-        comparable_Industries_list = df_final[df_final["Cluster"]==target_cluster]["Industry"].to_list()
-        comparable_Names_list = df_final[df_final["Cluster"]==target_cluster]["Name"].to_list()
-        comparables_df = pd.DataFrame()
-        comparables_df["Company"] = comparable_Companies_list
-        comparables_df["Name"] = comparable_Names_list
-        comparables_df["Sector"] = comparable_Sectors_list
-        comparables_df["Industry"] = comparable_Industries_list
-        st.markdown("## Same Cluster")
-        st.dataframe(comparables_df[comparables_df["Sector"] == target_sector])
-        st.markdown("## Same Cluster and Sector")
-        st.dataframe(comparables_df[comparables_df["Sector"] == target_sector])
-        st.markdown("## Same Cluster and Sector and Industry")
-        st.dataframe(comparables_df[comparables_df["Industry"] == target_industry])
-        st.markdown("## Same Sector")
-        st.dataframe(df_no_nan[df_no_nan['Sector'] == target_sector].loc[:,['Company', 'Name', 'Sector','Industry' ]])
-        st.markdown("## Same Industry")
-        st.dataframe(df_no_nan[df_no_nan['Industry'] == target_industry].loc[:,['Company', 'Name', 'Sector','Industry' ]])
-        st.markdown("## Cluster Visualisation")
-        if len(multiples_to_cluster_on) == 1:
-            st.markdown("Not Enough Metrics to Cluster on")
-        elif len(multiples_to_cluster_on) == 2:
-            tsne = TSNE(n_components=2, perplexity=30, random_state=42)
-            tsne_result = tsne.fit_transform(df_scaled_no_outliers_numeric.drop(columns=["Company", "Industry", "Sector", "Name", "Cluster"]))
-            df_tsne = pd.DataFrame(tsne_result, columns=["tSNE1", "tSNE2"])
-            df_tsne['Cluster'] = df_final["Cluster"]
-            df_tsne['Company'] = df_final["Company"]
-            tsne_fig = go.Figure()
-            for cluster in df_tsne["Cluster"].unique():
-                
-                cluster_data = df_tsne[df_tsne["Cluster"] == cluster]
-                tsne_fig.add_trace(go.Scatter(x = cluster_data['tSNE1'], y = cluster_data['tSNE2'] , name=f"Cluster: {cluster}", mode = 'markers',), )
-                tsne_fig.update_traces(marker={'size': 3,})
-                tsne_fig.update_layout(
-                autosize=False,
-                width=900,
-                height=600,
-            )
-            st.plotly_chart(tsne_fig)
-        else:
-            tsne = TSNE(n_components=3, perplexity=30, random_state=42)
-            tsne_result = tsne.fit_transform(df_scaled_no_outliers_numeric.drop(columns=["Company", "Industry", "Sector", "Name", "Cluster"]))
-            df_tsne = pd.DataFrame(tsne_result, columns=["tSNE1", "tSNE2", 'tSNE3'])
-            df_tsne['Cluster'] = df_final["Cluster"]
-            df_tsne['Company'] = df_final["Company"]
-            tsne_fig = go.Figure()
-            for cluster in df_tsne["Cluster"].unique():
-                
-                cluster_data = df_tsne[df_tsne["Cluster"] == cluster]
-                tsne_fig.add_trace(go.Scatter3d(x = cluster_data['tSNE1'], y = cluster_data['tSNE2'],z =cluster_data['tSNE3'] , name=f"Cluster: {cluster}", mode = 'markers',), )
-                tsne_fig.update_traces(marker={'size': 3,})
-                tsne_fig.update_layout(
-                autosize=False,
-                width=900,
-                height=600,
-            )
-            st.plotly_chart(tsne_fig)
 
 def check_ollama_running():
     """Check if Ollama is already running."""
@@ -766,7 +460,7 @@ def sector_screener():
                     height=700,
                 )
 
-    st.plotly_chart(fig)
+    st.plotly_chart(fig, use_container_width=True)
     
     
     
@@ -806,116 +500,205 @@ def sector_screener():
     
     
     
-    
-    st.markdown("## Sector Performance")
-    lookback_period = st.number_input("Enter Lookback Period", min_value=2, max_value=1257, step=10)
-    sector_proxies = ['XLB', 'XLC', 'XLE', 'XLF', 'XLI', 'XLK', 'XLP', 'XLRE', 'XLU', 'XLV', 'XLY']
-    sector_proxies_names = ['Materials', 'Communications', 'Energy', 'Financials', 'Industrials', 'Technology', 'Consumer Staples', 'Real Estate', 'Utilities', 'Healthcare', 'Consumer Discretionary']
-    hm = yf.Tickers(sector_proxies)
-    df = hm.history(period='5y', interval='1d',auto_adjust=False)['Close']
-    if df.shape[0] == 0:
-        st.markdown("#### Error Getting Live Data")
-    else:
-        performance_df = ((df.iloc[-1,:]-df.iloc[-lookback_period,:])/df.iloc[-lookback_period,:])*100
-        performance_df = pd.DataFrame(performance_df, columns=["Value", ])
-        performance_df["Name"] = sector_proxies_names
-        performance_fig = go.Figure()
-        temp = performance_df.sort_values(['Value'])
-        performance_fig.add_trace(go.Bar(x = temp['Value'], y = temp["Name"], orientation='h'))
-        performance_fig.update_xaxes(title_text = f"Performance over {lookback_period-1} Days")
-        performance_fig.update_yaxes(title_text = "Sector")
-        performance_fig.update_layout(
-                    autosize=False,
-                    width=1000,
-                    height=500,
-                )
-        st.plotly_chart(performance_fig)
-    
-    
     st.markdown("-----")    
-       
-def testportfolios():
-    stock_list_pd = pd.read_pickle("StockList")
-    num_portfolios = st.number_input("Number of Portfolio's", min_value=2, max_value=5, step=1)
-    time_start = st.date_input("input Start Data")
-    st.markdown(time_start)
-    st.title("📊 Portfolio Comparison Builder")
-
-    
-    portfolios = {}
-
-    with st.form("PortfolioForm"):
-        portfolio_data = []
-        for i in range(num_portfolios):
-            st.markdown(f"---\n### Portfolio {i + 1}")
-            
-            name = st.text_input(f"Name of Portfolio {i + 1}", key=f"name_{i}")
-            
-            tickers_input = st.multiselect("Enter Tickers", options=stock_list_pd, key=i)
-            st.markdown(tickers_input)
-            #tickers = [t.strip().upper() for t in tickers_input.split(',') if t.strip()]
-
-            weights_input = st.text_input(f"Enter weights: e.g: 0.5,0.5", key=f"weights_{i}")
-            weights = [float(w.strip()) for w in weights_input.split(',')] if weights_input else None
-
-            portfolio_data.append((name, tickers_input, weights))
-            # Store the portfolio config
-        submitted122 = st.form_submit_button("Build")
-            
-    #st.form_submit_button.button("✅ Build & Compare Portfolios")
-        # 3. Display summary and trigger calculation
-    if submitted122:
-        st.success("✅ Portfolios successfully built!")
-        portfolio_data_df = pd.DataFrame(portfolio_data, columns=["Portfolio Name", "Tickers", "Weightings"])
-        compare_portfolios_plot = go.Figure()
-        
-        for portfolio_index in portfolio_data_df.index:
-            tickers = portfolio_data_df.iloc[portfolio_index,1]
-            weights = portfolio_data_df.iloc[portfolio_index,2]
-            temp_df = yf.download(tickers=tickers, start=time_start, interval='1d')["Close"]
-            temp_df = (temp_df.pct_change())*100
-            temp_df.dropna(inplace=True)
-            temp_df = temp_df.reset_index()
-            temp_df['Portfolio_Return'] = temp_df[tickers].dot(weights)
-            initial_value = 100
-            temp_df['Portfolio_Value'] = (1 + (temp_df['Portfolio_Return'] / 100)).cumprod() * initial_value
-            compare_portfolios_plot.add_trace(go.Scatter(x = temp_df['Date'], y = temp_df['Portfolio_Value'], 
-                                                        name=f'{portfolio_data_df.iloc[portfolio_index,0]}'))
-        
-        st.plotly_chart(compare_portfolios_plot)
-        
-        
-
-            
+             
+def Company_overview():
     
     
+    ticker = st.text_input(label="Enter ticker", placeholder='Enter A Ticker')
+    ok_button = st.button("OK")
+    if ok_button:
+        #get Basic Info
+        company_profile = requests.get(f"https://financialmodelingprep.com/stable/profile?symbol={ticker}&apikey={API_KEY}").json()[0]
+        symbol = company_profile['symbol']
+        price = company_profile['price']
+        marketCap =company_profile['marketCap']
+        changePercentage = company_profile['changePercentage']
+        exchange = company_profile['exchange']
+        industry = company_profile['industry']
+        description = company_profile['description']
+        sector = company_profile['sector']
+        companyName = company_profile['companyName']
+        
+        st.markdown(f"# {companyName}")
+        st.metric(label = f"{exchange}" , value=price, delta=f"{round(changePercentage,2)} %", label_visibility ='hidden' )
+        
+        # Stock Chart
+        company_chart = requests.get(f"https://financialmodelingprep.com/stable/historical-price-eod/light?symbol={ticker}&apikey={API_KEY}").json()
+        company_chart_df = pd.DataFrame(company_chart)
+        company_chart_df['date'] = pd.to_datetime(company_chart_df['date'])
+        price_chart = go.Figure()
+        price_chart.add_trace(go.Line(x = company_chart_df['date'], y = company_chart_df['price']))
+        price_chart.update_layout(
+            title=dict(
+                text=f"{ticker} Chart"
+            ),
+            xaxis=dict(
+                title=dict(
+                    text="Date"
+                )
+            ),
+            yaxis=dict(
+                title=dict(
+                    text=f"{ticker} Price"
+                )
+            ),
+            legend=dict(
+                title=dict(
+                    text="Legend Title"
+                )
+            )
+        )
+        st.plotly_chart(price_chart,use_container_width=True)
+        
+        # Display Basic Info
+        st.markdown(f"##### Sector: {sector}")
+        st.markdown(f"##### Industry: {industry}")
+        st.markdown(f"{description}")
+        st.markdown(f"_____")
+        
+        
+            
+            
+        # Product Segmentation
+        st.markdown("## Revenue Segmentation")
+        product_segmentation = requests.get(f"https://financialmodelingprep.com/stable/revenue-product-segmentation?symbol={ticker}&apikey={API_KEY}").json()
+        product_segmentation_df = pd.DataFrame(product_segmentation)
+        product_segmentation_df = product_segmentation_df.drop(columns=['symbol','period','reportedCurrency', 'fiscalYear'  ])
+
+        # Normalize the dictionary into separate columns
+        data_expanded = pd.json_normalize(product_segmentation_df['data'])
+
+        # Combine with the 'date' column
+        product_segmentation_df_final = pd.concat([product_segmentation_df['date'], data_expanded], axis=1)
+
+        product_segmentation_df_final = product_segmentation_df_final.iloc[0:8,:]
+        product_segmentation_df_final = product_segmentation_df_final.T.dropna()
+        product_segmentation_df_final = product_segmentation_df_final.T
+        product_segmentation_df_final['date'] = pd.to_datetime(product_segmentation_df_final['date'])
+        df_melted = product_segmentation_df_final.melt(id_vars='date', var_name='Segment', value_name='Revenue')
+        fig = px.area(df_melted,
+                    x='date',
+                    y='Revenue',
+                    color='Segment',
+                    title=f'{ticker} Revenue Segmentation Over Time',
+                    labels={'Revenue': 'Revenue', 'date': 'Date'},
+                    )
+        fig.update_layout(
+            hovermode='x unified',
+            legend_title_text='Segment',
+            xaxis_title='Date',
+            yaxis_title='Revenue (USD)',
+            template='plotly_dark'  # Optional: use 'plotly_white' for light theme
+        )
+        #fig.show()
+        st.plotly_chart(fig, use_container_width=True)
+        
+        st.markdown(f"_____")
+        # Geographic Segmentation
+        st.markdown("## Geographic Segmentation")
+        geographic_segmentation = requests.get(f"https://financialmodelingprep.com/stable/revenue-geographic-segmentation?symbol={ticker}&apikey={API_KEY}").json()
+        geographic_segmentation_df = pd.DataFrame(geographic_segmentation)
+        geographic_segmentation_df = geographic_segmentation_df.drop(columns=['symbol','period','reportedCurrency', 'fiscalYear'  ])
+
+        # Normalize the dictionary into separate columns
+        data_expanded = pd.json_normalize(geographic_segmentation_df['data'])
+
+        # Combine with the 'date' column
+        geographic_segmentation_df_final = pd.concat([geographic_segmentation_df['date'], data_expanded], axis=1)
+
+        geographic_segmentation_df_final = geographic_segmentation_df_final.iloc[0:8,:]
+        geographic_segmentation_df_final = geographic_segmentation_df_final.T.dropna()
+        geographic_segmentation_df_final = geographic_segmentation_df_final.T
+        geographic_segmentation_df_final['date'] = pd.to_datetime(geographic_segmentation_df_final['date'])
+        df_melted = geographic_segmentation_df_final.melt(id_vars='date', var_name='Segment', value_name='Revenue')
+        fig = px.area(df_melted,
+                    x='date',
+                    y='Revenue',
+                    color='Segment',
+                    title=f'{ticker} Revenue Segmentation Over Time',
+                    labels={'Revenue': 'Revenue', 'date': 'Date'},
+                    )
+        fig.update_layout(
+            hovermode='x unified',
+            legend_title_text='Segment',
+            xaxis_title='Date',
+            yaxis_title='Revenue (USD)',
+            template='plotly_dark'  # Optional: use 'plotly_white' for light theme
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        st.markdown(f"_____")
+        # Get Statement Data
+        income_statement = pd.DataFrame(requests.get(f"https://financialmodelingprep.com/stable/income-statement?symbol={ticker}&apikey={API_KEY}").json())
+        income_statement = income_statement.drop(columns=['symbol', 'reportedCurrency', 'cik','date','filingDate', 'acceptedDate', 'period' ])
+        
+        balance_sheet = pd.DataFrame(requests.get(f"https://financialmodelingprep.com/stable/balance-sheet-statement?symbol={ticker}&apikey={API_KEY}").json())
+        balance_sheet = balance_sheet.drop(columns=['symbol','fiscalYear', 'reportedCurrency', 'cik','date','filingDate', 'acceptedDate', 'period' ])
+        
+        Cash_flow = pd.DataFrame(requests.get(f"https://financialmodelingprep.com/stable/cash-flow-statement?symbol={ticker}&apikey={API_KEY}").json())
+        Cash_flow = Cash_flow.drop(columns=['symbol','fiscalYear', 'reportedCurrency', 'cik','date','filingDate', 'acceptedDate', 'period' ])
+        
+        statement = pd.concat([income_statement,balance_sheet,Cash_flow], axis=1)
+        
+        statement = statement.iloc[::-1].reset_index(drop=True)
+        
+        statements_columns = statement.columns.values.tolist()
+        
+        #Line Plot
+        things_to_plot = st.multiselect(label="Choose Line Item to Plot", options=statements_columns, key=1, default=["revenue", "costOfRevenue", "grossProfit", 'ebitda', 'netIncome'])
+        fig = go.Figure()
+        for line_item in things_to_plot:
+            
+            fig.add_trace(go.Scatter(x = statement['fiscalYear'],y = statement[line_item],name=f"{line_item}") )
+
+        fig.update_layout(
+            hovermode='x unified',
+            legend_title_text='Line Item',
+            xaxis_title='Date',
+            yaxis_title='Amount',
+            template='plotly_dark',
+            title = "Line Item Plot")
+        st.plotly_chart(fig, use_container_width=True)
+        st.markdown(f"_____")
+        # Bar Plot
+        things_to_plot = st.multiselect(label="Choose Line Item to Plot", options=statements_columns, key=2,default= ["totalAssets", "totalEquity", "totalLiabilities", 'freeCashFlow'])
+        fig = go.Figure()
+        for line_item in things_to_plot:
+            
+            fig.add_trace(go.Bar(x = statement['fiscalYear'],y = statement[line_item],name=f"{line_item}") )
+
+        fig.update_layout(
+            hovermode='x unified',
+            legend_title_text='Line Item',
+            xaxis_title='Date',
+            yaxis_title='Amount',
+            template='plotly_dark',
+        title = "Line Item Plot")
+        st.plotly_chart(fig, use_container_width=True)
+        
+        st.markdown(f"_____")
+        #news Headlines
+        st.markdown("# News Headlines")
+        stock_news = requests.get(f"https://financialmodelingprep.com/stable/news/stock?symbols={ticker}&apikey={API_KEY}").json()
+        for article in stock_news[0:5]:
+            st.markdown(f"### {article['title']}")
+            st.markdown(article['text'])
              
 with st.sidebar:
     selected = option_menu(
         menu_title = 'Models',
-        options = [ 'DCF Model', 'Multiples Model', 'K Means Clustering', 'Sector Screener','Portfolio Variance Calculator', 'Portfoliometer'],
+        options = [ 'Company Overview','DCF Model','Sector Screener','Portfolio Variance Calculator' ],
         orientation='vertical',
         icons = ['house', 'buildings', 'lock', 'buildings','buildings' ])
     
 if selected == 'DCF Model':
     dcfModel()
-
-if selected == 'Multiples Model':
-    multiplesModel()
     
-if selected == 'K Means Clustering':
-    k_means_clustering()
+if selected == 'Company Overview': 
+    Company_overview()
 
 if selected == 'Sector Screener':
     sector_screener()
     
 if selected == 'Portfolio Variance Calculator':
-    risk_analysis()
-    
-if selected == "Portfoliometer":
-    testportfolios()
-
-
-
-
-        
+    Portfolio_Variance_Calculator()   
