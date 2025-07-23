@@ -504,7 +504,8 @@ def sector_screener():
              
 def Company_overview():
     
-    ticker = st.text_input(label="Enter ticker", placeholder='Enter A Ticker', )
+    ticker = st.text_input(label="Enter ticker", placeholder='Enter A Ticker' )
+    st.markdown(f"Ticker: {ticker}")
     if ticker == None:
         st.markdown("### Please Enter a Valid Ticker")
     else:
