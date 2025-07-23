@@ -506,7 +506,7 @@ def Company_overview():
     
     ticker = st.text_input(label="Enter ticker", placeholder='Enter A Ticker' )
     st.markdown(f"Ticker: {ticker}")
-    if ticker == None:
+    if ticker == "":
         st.markdown("### Please Enter a Valid Ticker")
     else:
         #get Basic Info
