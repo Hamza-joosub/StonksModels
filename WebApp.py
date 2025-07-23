@@ -122,234 +122,237 @@ def Portfolio_Variance_Calculator():
             
 def dcfModel():
     ticker = st.text_input(label="Enter ticker", placeholder='AAPL')
-    
-    company_profile = requests.get(f"https://financialmodelingprep.com/stable/profile?symbol={ticker}&apikey={API_KEY}").json()[0]
-    symbol = company_profile['symbol']
-    currentPrice = company_profile['price']
-    marketCap =company_profile['marketCap']
-    changePercentage = company_profile['changePercentage']
-    exchange = company_profile['exchange']
-    industry = company_profile['industry']
-    description = company_profile['description']
-    sector = company_profile['sector']
-    name = company_profile['companyName']
-    beta = company_profile['beta']
-    
-    income_stmnt = pd.DataFrame(requests.get(f"https://financialmodelingprep.com/stable/income-statement?symbol={ticker}&apikey={API_KEY}").json())
-    income_stmnt = income_stmnt.drop(columns=['symbol', 'reportedCurrency', 'cik','date','filingDate', 'acceptedDate', 'period' ])
-    income_stmnt = income_stmnt.set_index('fiscalYear')
-    income_stmnt_Metrics = income_stmnt.columns.values.tolist()
-    
-    
-    sharesOutstanding = income_stmnt.iloc[0,-2]
-    
-    balance_sheet_stmnt = pd.DataFrame(requests.get(f"https://financialmodelingprep.com/stable/balance-sheet-statement?symbol={ticker}&apikey={API_KEY}").json())
-    balance_sheet_stmnt = balance_sheet_stmnt.drop(columns=['symbol','fiscalYear', 'reportedCurrency', 'cik','date','filingDate', 'acceptedDate', 'period' ])
-    
-    
-    
-    cash_flow_stmnt = pd.DataFrame(requests.get(f"https://financialmodelingprep.com/stable/cash-flow-statement?symbol={ticker}&apikey={API_KEY}").json())
-    cash_flow_stmnt = cash_flow_stmnt.drop(columns=['symbol', 'reportedCurrency', 'cik','date','filingDate', 'acceptedDate', 'period' ])
-    cash_flow_stmnt = cash_flow_stmnt.set_index('fiscalYear')
-    cash_flow_stmnt_Metrics = cash_flow_stmnt.columns.values.tolist()
-    
-    statement = pd.concat([income_stmnt,balance_sheet_stmnt,cash_flow_stmnt], axis=1)
-    statement = statement.iloc[::-1].reset_index(drop=True)
-    statements_columns = statement.columns.values.tolist()
-    
-   
-
-    
-    metric_name = st.selectbox('Select Line Item to Plot', options=statements_columns, placeholder='Select Line Item')
-    if metric_name in cash_flow_stmnt_Metrics:
-        metric_no_na = cash_flow_stmnt[metric_name]
-        metric_no_na = metric_no_na.dropna()
-        metric_no_na = metric_no_na.iloc[::-1]
-        metric_growth = metric_no_na.pct_change(fill_method=None)
-        metric_growth = metric_growth.iloc[::-1]
-        metric_growth=metric_growth.astype(float)*100
-        metric_growth = metric_growth.round(decimals=2)
-        metric_growth = metric_growth.astype('string') + " %"
-        metric_list_form = cash_flow_stmnt[metric_name].dropna().to_list()
-        cagr = (metric_list_form[0]/metric_list_form[-1])**(1/len(metric_list_form))-1
-        if isinstance(cagr, complex):
-            cagr = cagr
-        else:
-            cagr = round(cagr*100,2)
-        meric_ot_fig = go.Figure()
-        meric_ot_fig.add_traces(go.Bar(x = cash_flow_stmnt.index,y = cash_flow_stmnt[metric_name], text=metric_growth, marker_color='salmon'))
-        meric_ot_fig.update_xaxes(title_text = 'Date')
-        meric_ot_fig.update_yaxes(title_text = metric_name)
-        meric_ot_fig.update_layout(title_text=f'{metric_name} Over Time with CAGR: {cagr} %')
-    elif metric_name in income_stmnt_Metrics:   
-        metric_no_na = income_stmnt[metric_name]
-        metric_no_na = metric_no_na.dropna()
-        metric_no_na = metric_no_na.iloc[::-1]
-        metric_growth = metric_no_na.pct_change(fill_method=None)
-        metric_growth = metric_growth.iloc[::-1]
-        metric_growth=metric_growth.astype(float)*100
-        metric_growth = metric_growth.round(decimals=2)
-        metric_growth = metric_growth.astype('string') + " %"
-        metric_list_form = income_stmnt[metric_name].dropna().to_list()
-        cagr = (metric_list_form[0]/metric_list_form[-1])**(1/len(metric_list_form))-1
-        if isinstance(cagr, complex):
-            cagr = cagr
-        else:
-            cagr = round(cagr*100,2)
-        meric_ot_fig = go.Figure()
-        meric_ot_fig.add_traces(go.Bar(x = income_stmnt.index,y = income_stmnt[metric_name], text=metric_growth, marker_color='salmon'))
-        meric_ot_fig.update_xaxes(title_text = 'Date')
-        meric_ot_fig.update_yaxes(title_text = metric_name)
-        meric_ot_fig.update_layout(title_text=f'{metric_name} Over Time With CAGR {cagr} %')
+    ticker = st.text_input(label="Enter ticker", placeholder='Enter A Ticker' )
+    if ticker == "":
+        st.markdown("### Please Enter a Valid Ticker")
     else:
-        metric_no_na = balance_sheet_stmnt[metric_name]
-        metric_no_na = metric_no_na.dropna()
-        metric_no_na = metric_no_na.iloc[::-1]
-        metric_growth = metric_no_na.pct_change(fill_method=None)
-        metric_growth = metric_growth.iloc[::-1]
-        metric_growth=metric_growth.astype(float)*100
-        metric_growth = metric_growth.round(decimals=2)
-        metric_growth = metric_growth.astype('string') + " %"
-        metric_list_form = balance_sheet_stmnt[metric_name].dropna().to_list()
-        cagr = (metric_list_form[0]/metric_list_form[-1])**(1/len(metric_list_form))-1
-        if isinstance(cagr, complex):
-            cagr = cagr
-        else:
-            cagr = round(cagr*100,2)
-        meric_ot_fig = go.Figure()
-        meric_ot_fig.add_traces(go.Bar(x = balance_sheet_stmnt.index,y = balance_sheet_stmnt[metric_name], text=metric_growth, marker_color='salmon'))
-        meric_ot_fig.update_xaxes(title_text = 'Date')
-        meric_ot_fig.update_yaxes(title_text = metric_name)
-        meric_ot_fig.update_layout(title_text=f'{metric_name} Over Time With CAGR: {cagr} %')
+        company_profile = requests.get(f"https://financialmodelingprep.com/stable/profile?symbol={ticker}&apikey={API_KEY}").json()[0]
+        symbol = company_profile['symbol']
+        currentPrice = company_profile['price']
+        marketCap =company_profile['marketCap']
+        changePercentage = company_profile['changePercentage']
+        exchange = company_profile['exchange']
+        industry = company_profile['industry']
+        description = company_profile['description']
+        sector = company_profile['sector']
+        name = company_profile['companyName']
+        beta = company_profile['beta']
         
-    st.plotly_chart(meric_ot_fig,use_container_width=True)
-
-    st.markdown("## Future Cash Flows")
-    #Ask for Forecast Length
-    n = st.number_input('Forecast Length', min_value=2, step=1)
-    fcf_Growth_list = []
-    cagr_toggle = st.toggle("Use CAGR Of FCF Instead", value=False)
-    if cagr_toggle:
-        cagr_fcf = st.number_input('Input CAGR Of Free Cash Flows', step=0.5)
-        g = (st.number_input(f'Terminal Growth Rate',step=0.5))/100
-        future_Cash_Flows = {'Free Cash Flow Current': cash_flow_stmnt['freeCashFlow'].to_list()[0]
-                }
-        for i in range(1,n+1):
-            future_Cash_Flows[f'Forecast {i+1}'] =cash_flow_stmnt['freeCashFlow'].to_list()[0]*(1+cagr_fcf/100)**i
-          
-            
-    else:
+        income_stmnt = pd.DataFrame(requests.get(f"https://financialmodelingprep.com/stable/income-statement?symbol={ticker}&apikey={API_KEY}").json())
+        income_stmnt = income_stmnt.drop(columns=['symbol', 'reportedCurrency', 'cik','date','filingDate', 'acceptedDate', 'period' ])
+        income_stmnt = income_stmnt.set_index('fiscalYear')
+        income_stmnt_Metrics = income_stmnt.columns.values.tolist()
         
-        for i in range(1,n+1):
-                temp_FCF_Growth = st.number_input(f'Free Cash Flow Growth Forecast {i}', step=0.5)
-                fcf_Growth_list.append(temp_FCF_Growth)
-        curr_FCF = cash_flow_stmnt['freeCashFlow'].to_list()[0]
-        g = (st.number_input(f'Terminal Growth Rate', step=0.5))/100
-        future_Cash_Flows = {'Free Cash Flow Current': cash_flow_stmnt['freeCashFlow'].to_list()[0]
-                }
-        temp_fcf = curr_FCF
-        for i in range(0,len(fcf_Growth_list)):
-            temp_fcf = temp_fcf+((fcf_Growth_list[i]/100)*temp_fcf)
-            future_Cash_Flows[f'Forecast {i+1}'] =temp_fcf
-    st.table(future_Cash_Flows)
-    
-    
-    st.markdown("## Cost of Equity(USING CAPM)")
-    #Get Risk Free Rate
-    risk_free_rate = st.selectbox('Choose Risk Free Rate Proxy', options=['10 Year Treasury Yield'])
-    if risk_free_rate == '3 Month Treasury Yield':
-        tbill = yf.Ticker("^IRX")
-    else:
-        tbill = requests.get(f'https://financialmodelingprep.com/api/v4/treasury?tenor=10y&apikey={API_KEY}').json()[0]["month1"]
-    
-    st.markdown(tbill)
-    rf = tbill/100
-
-    
-    #get Market Return
-    market_index_long_name = st.selectbox('Choose Market Index', options=['S&P500'])
-    annualized_over = st.selectbox('Choose How long To annualize Returns over', options=['1 Year', '5 Years', '10 Years'])
-    if market_index_long_name == 'S&P500':
-        spy_returns = pd.DataFrame(requests.get(f'https://financialmodelingprep.com/api/v3/historical-price-full/^GSPC?serietype=line&apikey={API_KEY}').json()['historical'])
-        spy_returns = spy_returns.iloc[0:2500]
-        rm = (spy_returns.iloc[0,1]/spy_returns.iloc[-1,1])**(1/10)-1
-    
+        
+        sharesOutstanding = income_stmnt.iloc[0,-2]
+        
+        balance_sheet_stmnt = pd.DataFrame(requests.get(f"https://financialmodelingprep.com/stable/balance-sheet-statement?symbol={ticker}&apikey={API_KEY}").json())
+        balance_sheet_stmnt = balance_sheet_stmnt.drop(columns=['symbol','fiscalYear', 'reportedCurrency', 'cik','date','filingDate', 'acceptedDate', 'period' ])
+        
+        
+        
+        cash_flow_stmnt = pd.DataFrame(requests.get(f"https://financialmodelingprep.com/stable/cash-flow-statement?symbol={ticker}&apikey={API_KEY}").json())
+        cash_flow_stmnt = cash_flow_stmnt.drop(columns=['symbol', 'reportedCurrency', 'cik','date','filingDate', 'acceptedDate', 'period' ])
+        cash_flow_stmnt = cash_flow_stmnt.set_index('fiscalYear')
+        cash_flow_stmnt_Metrics = cash_flow_stmnt.columns.values.tolist()
+        
+        statement = pd.concat([income_stmnt,balance_sheet_stmnt,cash_flow_stmnt], axis=1)
+        statement = statement.iloc[::-1].reset_index(drop=True)
+        statements_columns = statement.columns.values.tolist()
         
     
-    
-    st.markdown(f'Risk Free Rate({risk_free_rate}): {round(rf*100,3)} %')
-    st.markdown(f'Market Return({market_index_long_name}) {round(rm*100,3)} %')
-    st.markdown(f"Beta: {beta}")
-    rc = round((rf + beta*(rm-rf)),2)
-    st.markdown(f'##### Cost Of Equity: {round(rc*100,2)} %')
-    
-    st.markdown("## Cost of Debt")
-    if math.isnan(income_stmnt['interestExpense'].to_list()[0]):
-        interest_expense = 0
-    else:
-        interest_expense = income_stmnt['interestExpense'].to_list()[0]
-    total_debt = balance_sheet_stmnt['totalDebt'].to_list()[0]
-    rd = (interest_expense/total_debt)
-  
-    st.markdown(f'Interest Expense: {interest_expense}')
-    st.markdown(f'Total Debt: {total_debt}')
-    st.markdown(f'##### Cost of Debt: {round(rd*100,2)} %')
-    
-    st.markdown("## Weighted Average Cost of Capital")
-    total_Equity = balance_sheet_stmnt['totalEquity'].to_list()[0]
-    st.markdown(f"Total Debt: {total_debt}")
-    st.markdown(f"Total Equity: {total_Equity}")
-    wacc = ((total_Equity/(total_Equity+total_debt))*rc)+((total_debt/(total_Equity+total_debt))*rd)
-    st.markdown(f'##### Wacc: {round(wacc*100,2)}%')
-    
-    st.markdown('## Discounted Future Cash Flows to Present Value')
-    future_cash_Flows_list = list(future_Cash_Flows.values())
-    tv = (future_cash_Flows_list[-1]*(1+g))/(wacc-g)
-    pv = 0
-    for t in range(1,len(future_cash_Flows_list)):
-        print(future_cash_Flows_list[t])
-        pv = pv + future_cash_Flows_list[t]/(1+wacc)**t
-    ev = pv+(tv/(1+wacc)**(len(future_cash_Flows_list)+1))
-    net_debt = balance_sheet_stmnt['netDebt'].to_list()[0]
-    st.markdown(f'##### Equity Value: {round(ev,0)}') 
-    
-    st.markdown('## Intrinsic Value per Sare')
-    st.markdown(f"Net Debt: {net_debt}")
-     
-    iv = ((ev-net_debt)/sharesOutstanding)
-    st.markdown(f"#### Intrinsic Value Per Share: ${round(iv,2)}")
-    st.markdown(f"#### Current Price : ${currentPrice}")
-    if currentPrice>iv+iv*0.1:
-        status = 'Overvalued'
-    elif currentPrice<iv-iv*0.1:
-        status = 'undervalued'
-    else:
-        status = 'Fairly Valued'
-    st.markdown(f"## {name} is {status}")
-    
-    st.markdown("# Summary")
-    
-    if len(fcf_Growth_list) == 0:
-        user_prompt = f"This is a DCF Model to value {ticker}, The current free cash flow is: {cash_flow_stmnt['freeCashFlow'].to_list()[0]}, The user inputted a {cagr_fcf} Compounded annual growth rate of FCF over the next {n} years, the terminal growth rate is {g*100}%,WACC is calulcated by CAPM where the risk free rate used is {risk_free_rate}%,The market return is the return of the {market_index_long_name} annaulised over {annualized_over} and the cost of debt is calculated and thus the WACC being: {round(wacc*100,2)},The intrinsic value of the share is calculated as {iv}. Here are the previous years cash flow for {ticker}: {cash_flow_stmnt['freeCashFlow'].to_list()}. Give an in depth analysis of the Model, Provide feedback if changes of any inputs are needed"
 
-    if st.button("Generate Response"):
-        payload = {
-            "model": "llama3",
-            "prompt": user_prompt,
-            "stream": False
-        }
-
-        try:
-            response = requests.post(OLLAMA_API_URL, json=payload)
-
-            if response.status_code == 200:
-                st.markdown("### 🤖 Ollama Response:")
-                st.markdown(response.json()["response"])
+        
+        metric_name = st.selectbox('Select Line Item to Plot', options=statements_columns, placeholder='Select Line Item')
+        if metric_name in cash_flow_stmnt_Metrics:
+            metric_no_na = cash_flow_stmnt[metric_name]
+            metric_no_na = metric_no_na.dropna()
+            metric_no_na = metric_no_na.iloc[::-1]
+            metric_growth = metric_no_na.pct_change(fill_method=None)
+            metric_growth = metric_growth.iloc[::-1]
+            metric_growth=metric_growth.astype(float)*100
+            metric_growth = metric_growth.round(decimals=2)
+            metric_growth = metric_growth.astype('string') + " %"
+            metric_list_form = cash_flow_stmnt[metric_name].dropna().to_list()
+            cagr = (metric_list_form[0]/metric_list_form[-1])**(1/len(metric_list_form))-1
+            if isinstance(cagr, complex):
+                cagr = cagr
             else:
-                st.error(f"❌ API Error: {response.status_code}")
+                cagr = round(cagr*100,2)
+            meric_ot_fig = go.Figure()
+            meric_ot_fig.add_traces(go.Bar(x = cash_flow_stmnt.index,y = cash_flow_stmnt[metric_name], text=metric_growth, marker_color='salmon'))
+            meric_ot_fig.update_xaxes(title_text = 'Date')
+            meric_ot_fig.update_yaxes(title_text = metric_name)
+            meric_ot_fig.update_layout(title_text=f'{metric_name} Over Time with CAGR: {cagr} %')
+        elif metric_name in income_stmnt_Metrics:   
+            metric_no_na = income_stmnt[metric_name]
+            metric_no_na = metric_no_na.dropna()
+            metric_no_na = metric_no_na.iloc[::-1]
+            metric_growth = metric_no_na.pct_change(fill_method=None)
+            metric_growth = metric_growth.iloc[::-1]
+            metric_growth=metric_growth.astype(float)*100
+            metric_growth = metric_growth.round(decimals=2)
+            metric_growth = metric_growth.astype('string') + " %"
+            metric_list_form = income_stmnt[metric_name].dropna().to_list()
+            cagr = (metric_list_form[0]/metric_list_form[-1])**(1/len(metric_list_form))-1
+            if isinstance(cagr, complex):
+                cagr = cagr
+            else:
+                cagr = round(cagr*100,2)
+            meric_ot_fig = go.Figure()
+            meric_ot_fig.add_traces(go.Bar(x = income_stmnt.index,y = income_stmnt[metric_name], text=metric_growth, marker_color='salmon'))
+            meric_ot_fig.update_xaxes(title_text = 'Date')
+            meric_ot_fig.update_yaxes(title_text = metric_name)
+            meric_ot_fig.update_layout(title_text=f'{metric_name} Over Time With CAGR {cagr} %')
+        else:
+            metric_no_na = balance_sheet_stmnt[metric_name]
+            metric_no_na = metric_no_na.dropna()
+            metric_no_na = metric_no_na.iloc[::-1]
+            metric_growth = metric_no_na.pct_change(fill_method=None)
+            metric_growth = metric_growth.iloc[::-1]
+            metric_growth=metric_growth.astype(float)*100
+            metric_growth = metric_growth.round(decimals=2)
+            metric_growth = metric_growth.astype('string') + " %"
+            metric_list_form = balance_sheet_stmnt[metric_name].dropna().to_list()
+            cagr = (metric_list_form[0]/metric_list_form[-1])**(1/len(metric_list_form))-1
+            if isinstance(cagr, complex):
+                cagr = cagr
+            else:
+                cagr = round(cagr*100,2)
+            meric_ot_fig = go.Figure()
+            meric_ot_fig.add_traces(go.Bar(x = balance_sheet_stmnt.index,y = balance_sheet_stmnt[metric_name], text=metric_growth, marker_color='salmon'))
+            meric_ot_fig.update_xaxes(title_text = 'Date')
+            meric_ot_fig.update_yaxes(title_text = metric_name)
+            meric_ot_fig.update_layout(title_text=f'{metric_name} Over Time With CAGR: {cagr} %')
+            
+        st.plotly_chart(meric_ot_fig,use_container_width=True)
 
-        except requests.exceptions.ConnectionError:
-            st.error("❌ Ollama server is not reachable. Make sure it is running.")
+        st.markdown("## Future Cash Flows")
+        #Ask for Forecast Length
+        n = st.number_input('Forecast Length', min_value=2, step=1)
+        fcf_Growth_list = []
+        cagr_toggle = st.toggle("Use CAGR Of FCF Instead", value=False)
+        if cagr_toggle:
+            cagr_fcf = st.number_input('Input CAGR Of Free Cash Flows', step=0.5)
+            g = (st.number_input(f'Terminal Growth Rate',step=0.5))/100
+            future_Cash_Flows = {'Free Cash Flow Current': cash_flow_stmnt['freeCashFlow'].to_list()[0]
+                    }
+            for i in range(1,n+1):
+                future_Cash_Flows[f'Forecast {i+1}'] =cash_flow_stmnt['freeCashFlow'].to_list()[0]*(1+cagr_fcf/100)**i
+            
+                
+        else:
+            
+            for i in range(1,n+1):
+                    temp_FCF_Growth = st.number_input(f'Free Cash Flow Growth Forecast {i}', step=0.5)
+                    fcf_Growth_list.append(temp_FCF_Growth)
+            curr_FCF = cash_flow_stmnt['freeCashFlow'].to_list()[0]
+            g = (st.number_input(f'Terminal Growth Rate', step=0.5))/100
+            future_Cash_Flows = {'Free Cash Flow Current': cash_flow_stmnt['freeCashFlow'].to_list()[0]
+                    }
+            temp_fcf = curr_FCF
+            for i in range(0,len(fcf_Growth_list)):
+                temp_fcf = temp_fcf+((fcf_Growth_list[i]/100)*temp_fcf)
+                future_Cash_Flows[f'Forecast {i+1}'] =temp_fcf
+        st.table(future_Cash_Flows)
+        
+        
+        st.markdown("## Cost of Equity(USING CAPM)")
+        #Get Risk Free Rate
+        risk_free_rate = st.selectbox('Choose Risk Free Rate Proxy', options=['10 Year Treasury Yield'])
+        if risk_free_rate == '3 Month Treasury Yield':
+            tbill = yf.Ticker("^IRX")
+        else:
+            tbill = requests.get(f'https://financialmodelingprep.com/api/v4/treasury?tenor=10y&apikey={API_KEY}').json()[0]["month1"]
+        
+        st.markdown(tbill)
+        rf = tbill/100
+
+        
+        #get Market Return
+        market_index_long_name = st.selectbox('Choose Market Index', options=['S&P500'])
+        annualized_over = st.selectbox('Choose How long To annualize Returns over', options=['1 Year', '5 Years', '10 Years'])
+        if market_index_long_name == 'S&P500':
+            spy_returns = pd.DataFrame(requests.get(f'https://financialmodelingprep.com/api/v3/historical-price-full/^GSPC?serietype=line&apikey={API_KEY}').json()['historical'])
+            spy_returns = spy_returns.iloc[0:2500]
+            rm = (spy_returns.iloc[0,1]/spy_returns.iloc[-1,1])**(1/10)-1
+        
+            
+        
+        
+        st.markdown(f'Risk Free Rate({risk_free_rate}): {round(rf*100,3)} %')
+        st.markdown(f'Market Return({market_index_long_name}) {round(rm*100,3)} %')
+        st.markdown(f"Beta: {beta}")
+        rc = round((rf + beta*(rm-rf)),2)
+        st.markdown(f'##### Cost Of Equity: {round(rc*100,2)} %')
+        
+        st.markdown("## Cost of Debt")
+        if math.isnan(income_stmnt['interestExpense'].to_list()[0]):
+            interest_expense = 0
+        else:
+            interest_expense = income_stmnt['interestExpense'].to_list()[0]
+        total_debt = balance_sheet_stmnt['totalDebt'].to_list()[0]
+        rd = (interest_expense/total_debt)
+    
+        st.markdown(f'Interest Expense: {interest_expense}')
+        st.markdown(f'Total Debt: {total_debt}')
+        st.markdown(f'##### Cost of Debt: {round(rd*100,2)} %')
+        
+        st.markdown("## Weighted Average Cost of Capital")
+        total_Equity = balance_sheet_stmnt['totalEquity'].to_list()[0]
+        st.markdown(f"Total Debt: {total_debt}")
+        st.markdown(f"Total Equity: {total_Equity}")
+        wacc = ((total_Equity/(total_Equity+total_debt))*rc)+((total_debt/(total_Equity+total_debt))*rd)
+        st.markdown(f'##### Wacc: {round(wacc*100,2)}%')
+        
+        st.markdown('## Discounted Future Cash Flows to Present Value')
+        future_cash_Flows_list = list(future_Cash_Flows.values())
+        tv = (future_cash_Flows_list[-1]*(1+g))/(wacc-g)
+        pv = 0
+        for t in range(1,len(future_cash_Flows_list)):
+            print(future_cash_Flows_list[t])
+            pv = pv + future_cash_Flows_list[t]/(1+wacc)**t
+        ev = pv+(tv/(1+wacc)**(len(future_cash_Flows_list)+1))
+        net_debt = balance_sheet_stmnt['netDebt'].to_list()[0]
+        st.markdown(f'##### Equity Value: {round(ev,0)}') 
+        
+        st.markdown('## Intrinsic Value per Sare')
+        st.markdown(f"Net Debt: {net_debt}")
+        
+        iv = ((ev-net_debt)/sharesOutstanding)
+        st.markdown(f"#### Intrinsic Value Per Share: ${round(iv,2)}")
+        st.markdown(f"#### Current Price : ${currentPrice}")
+        if currentPrice>iv+iv*0.1:
+            status = 'Overvalued'
+        elif currentPrice<iv-iv*0.1:
+            status = 'undervalued'
+        else:
+            status = 'Fairly Valued'
+        st.markdown(f"## {name} is {status}")
+        
+        st.markdown("# Summary")
+        
+        if len(fcf_Growth_list) == 0:
+            user_prompt = f"This is a DCF Model to value {ticker}, The current free cash flow is: {cash_flow_stmnt['freeCashFlow'].to_list()[0]}, The user inputted a {cagr_fcf} Compounded annual growth rate of FCF over the next {n} years, the terminal growth rate is {g*100}%,WACC is calulcated by CAPM where the risk free rate used is {risk_free_rate}%,The market return is the return of the {market_index_long_name} annaulised over {annualized_over} and the cost of debt is calculated and thus the WACC being: {round(wacc*100,2)},The intrinsic value of the share is calculated as {iv}. Here are the previous years cash flow for {ticker}: {cash_flow_stmnt['freeCashFlow'].to_list()}. Give an in depth analysis of the Model, Provide feedback if changes of any inputs are needed"
+
+        if st.button("Generate Response"):
+            payload = {
+                "model": "llama3",
+                "prompt": user_prompt,
+                "stream": False
+            }
+
+            try:
+                response = requests.post(OLLAMA_API_URL, json=payload)
+
+                if response.status_code == 200:
+                    st.markdown("### 🤖 Ollama Response:")
+                    st.markdown(response.json()["response"])
+                else:
+                    st.error(f"❌ API Error: {response.status_code}")
+
+            except requests.exceptions.ConnectionError:
+                st.error("❌ Ollama server is not reachable. Make sure it is running.")
 
 def check_ollama_running():
     """Check if Ollama is already running."""
@@ -505,7 +508,6 @@ def sector_screener():
 def Company_overview():
     
     ticker = st.text_input(label="Enter ticker", placeholder='Enter A Ticker' )
-    st.markdown(f"Ticker: {ticker}")
     if ticker == "":
         st.markdown("### Please Enter a Valid Ticker")
     else:
