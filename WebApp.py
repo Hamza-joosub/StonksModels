@@ -504,7 +504,6 @@ def sector_screener():
              
 def Company_overview():
     
-    
     ticker = st.text_input(label="Enter ticker", placeholder='Enter A Ticker')
     ok_button = st.button("OK")
     if ok_button:
@@ -645,7 +644,7 @@ def Company_overview():
         statements_columns = statement.columns.values.tolist()
         
         #Line Plot
-        things_to_plot = st.multiselect(label="Choose Line Item to Plot", options=statements_columns, key=1, default=["revenue", "costOfRevenue", "grossProfit", 'ebitda', 'netIncome'])
+        things_to_plot = st.multiselect(label="Choose Line Item to Plot", options=statements_columns, key=1, default=["revenue", "costOfRevenue", "grossProfit", 'ebitda'])
         fig = go.Figure()
         for line_item in things_to_plot:
             
