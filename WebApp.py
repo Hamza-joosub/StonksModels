@@ -504,9 +504,10 @@ def sector_screener():
              
 def Company_overview():
     
-    ticker = st.text_input(label="Enter ticker", placeholder='Enter A Ticker')
-    ok_button = st.button("OK")
-    if ok_button:
+    ticker = st.text_input(label="Enter ticker", placeholder='Enter A Ticker', )
+    if ticker == None:
+        st.markdown("### Please Enter a Valid Ticker")
+    else:
         #get Basic Info
         company_profile = requests.get(f"https://financialmodelingprep.com/stable/profile?symbol={ticker}&apikey={API_KEY}").json()[0]
         symbol = company_profile['symbol']
