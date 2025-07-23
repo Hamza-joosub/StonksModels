@@ -121,7 +121,6 @@ def Portfolio_Variance_Calculator():
             st.dataframe(portfolio_weights)
             
 def dcfModel():
-    ticker = st.text_input(label="Enter ticker", placeholder='AAPL')
     ticker = st.text_input(label="Enter ticker", placeholder='Enter A Ticker' )
     if ticker == "":
         st.markdown("### Please Enter a Valid Ticker")
