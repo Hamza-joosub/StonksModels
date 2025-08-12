@@ -843,7 +843,6 @@ def portfolio_Attribution():
         pnl_OT = cumulative_pnl/capital_in_positions
         pnl_OT["Total"] = cumulative_pnl['Total_pnL(ZAR)']/capital_in_positions['Total Capital(ZAR)']
         pnl_OT = pnl_OT.drop(columns=['Total Capital(ZAR)', 'Total_pnL(ZAR)'])
-        st.dataframe(pnl_OT)
 
         #st.markdown("# Visualisation")
         col1, col2 = st.columns(2)
@@ -873,6 +872,7 @@ def portfolio_Attribution():
             st.plotly_chart(fig_portfolio_performance_ZAR)
 
         data_to_plot = pnl_OT.iloc[-1,:]*100
+        st.dataframe(data_to_plot)
         fig_postions_pnl = px.bar(data_to_plot,)
         fig_postions_pnl.update_layout(
             title_text='Postions PnL ', 
