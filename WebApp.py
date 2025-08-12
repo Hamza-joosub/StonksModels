@@ -847,7 +847,7 @@ def portfolio_Attribution():
 
         #st.markdown("# Visualisation")
         col1, col2 = st.columns(2)
-        st.markdown("# Overall Performance")
+        
         
         
         data_to_plot = pnl_OT["Total"].dropna()
@@ -874,9 +874,8 @@ def portfolio_Attribution():
             st.markdown("### Overall Performance(ZAR)")
             st.plotly_chart(fig_portfolio_performance_ZAR)
 
-        st.markdown("# Position Performance")
         data_to_plot = pnl_OT.iloc[-1,:]*100
-        fig_postions_pnl = px.bar(data_to_plot)
+        fig_postions_pnl = px.bar(data_to_plot, color='Daily_PL')
         fig_postions_pnl.update_layout(
             title_text='Postions PnL ', 
             xaxis_title='Ticker', 
