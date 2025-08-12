@@ -833,18 +833,18 @@ def portfolio_Attribution():
         #st.markdown("## cumulative_pnl")
         cumulative_pnl = absolute_pnl.cumsum()
         cumulative_pnl['Total_pnL(ZAR)'] = cumulative_pnl.sum(axis=1)
-        cumulative_pnl
+        
 
         #st.markdown("## capital_in_positions")
         capital_in_positions = net_capital_flow.cumsum()
         capital_in_positions['Total Capital(ZAR)'] = capital_in_positions.sum(axis=1)
-        capital_in_positions
+        
 
         #st.markdown("## pnl over time")
         pnl_OT = cumulative_pnl/capital_in_positions
         pnl_OT["Total"] = cumulative_pnl['Total_pnL(ZAR)']/capital_in_positions['Total Capital(ZAR)']
         pnl_OT = pnl_OT.drop(columns=['Total Capital(ZAR)', 'Total_pnL(ZAR)'])
-        pnl_OT
+        
 
         #st.markdown("# Visualisation")
 
