@@ -727,7 +727,7 @@ def portfolio_Attribution():
         admin_fees = admin_fees[::-1]
         #st.dataframe(admin_fees)
         total_admin_fees = admin_fees['Debit/Credit'].sum()
-        st.markdown(f'# Total Admin Fees:{round(-total_admin_fees,2)}')
+        st.markdown(f'#### Total Admin Fees: {round(-total_admin_fees,2)}')
 
 
         #st.markdown("### Buys and Sells Extraction")
@@ -885,7 +885,9 @@ def portfolio_Attribution():
             yaxis_title='PnL(%)'
         )
         st.plotly_chart(fig_postions_pnl)
+        
         data_to_plot = pnl_OT*100
+        st.dataframe(data_to_plot)
         fig_postions_pnl_over_time = px.line(data_to_plot)
         fig_postions_pnl_over_time.update_layout(
             title_text='Postions PnL Over Time ', 
