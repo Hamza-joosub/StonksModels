@@ -872,15 +872,13 @@ def portfolio_Attribution():
             st.plotly_chart(fig_portfolio_performance_ZAR)
 
         data_to_plot = pd.DataFrame(pnl_OT.iloc[-1,:]*100)
-        first_column_name = data_to_plot.columns.values.tolist()[0]
-        data_to_plot = data_to_plot.rename(columns={first_column_name:"Return %"})
-        st.dataframe(data_to_plot)
+        first_column_name = data_to_plot.columns[0]
+        data_to_plot = data_to_plot.rename(columns={first_column_name: "Return %"})
         fig_postions_pnl = px.bar(data_to_plot,)
         fig_postions_pnl.update_layout(
             title_text='Postions PnL ', 
             xaxis_title='Ticker', 
             yaxis_title='PnL(%)',
-            showlegend = False
         )
         with col1:
             st.markdown("### Position Performance Overall")
