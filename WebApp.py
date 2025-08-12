@@ -694,6 +694,7 @@ def portfolio_Attribution():
     transaction_data = st.file_uploader("Upload Easy Equities Transaction")
     start_date = st.date_input("Enter Start Date")
     start_date = start_date.strftime('%Y-%m-%d')
+    open_or_close = st.selectbox("Which Prices to use", options=["Open", 'Close'])
     okbutton = st.button("OK")
     if okbutton:
         df = pd.read_excel(transaction_data)
@@ -807,7 +808,7 @@ def portfolio_Attribution():
         st.dataframe(positions_filled_forward)
 
         st.markdown("## Getting prices")
-        prices = yf.download(tickers=daily_shares_changed.columns.values.tolist(), start = daily_shares_changed.iloc[0].name)['Open']
+        prices = yf.download(tickers=daily_shares_changed.columns.values.tolist(), start = daily_shares_changed.iloc[0].name)[open_or_close]
         prices = prices/100
         prices.index = pd.to_datetime(prices.index)
         prices.index = prices.index.date
