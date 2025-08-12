@@ -848,8 +848,6 @@ def portfolio_Attribution():
         #st.markdown("# Visualisation")
         col1, col2 = st.columns(2)
         
-        
-        
         data_to_plot = pnl_OT["Total"].dropna()
         fig_portfolio_performance_percentage = go.Figure()
         fig_portfolio_performance_percentage.add_traces(go.Scatter(x =data_to_plot.index, y= data_to_plot.values*100 ))
@@ -890,7 +888,8 @@ def portfolio_Attribution():
         fig_postions_pnl_over_time.update_layout(
             title_text='Postions PnL Over Time ', 
             xaxis_title='Ticker', 
-            yaxis_title='PnL(%)'
+            yaxis_title='PnL(%)',
+            showlegend = False
         )
         with col2:
             st.markdown("### Position Performance Over Time")
