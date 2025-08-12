@@ -791,7 +791,6 @@ def portfolio_Attribution():
         bought_tickers = transactions['Ticker'].unique().tolist()
         all_dates = pd.date_range(start=start_date, end=datetime.date.today(), freq='D')
         daily_shares_changed = pd.DataFrame({'Date': all_dates})
-        daily_shares_changed
         daily_shares_changed[transactions["Ticker"].unique().tolist()] = 0.0
         daily_shares_changed['Date'] = daily_shares_changed['Date'].astype(str)
         daily_shares_changed = daily_shares_changed.set_index('Date')
