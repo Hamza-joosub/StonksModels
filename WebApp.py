@@ -887,7 +887,6 @@ def portfolio_Attribution():
         st.plotly_chart(fig_postions_pnl)
         
         data_to_plot = pnl_OT*100
-        st.dataframe(data_to_plot)
         fig_postions_pnl_over_time = px.line(data_to_plot)
         fig_postions_pnl_over_time.update_layout(
             title_text='Postions PnL Over Time ', 
