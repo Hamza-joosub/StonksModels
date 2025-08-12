@@ -870,7 +870,6 @@ def portfolio_Attribution():
             st.plotly_chart(fig_portfolio_performance_ZAR)
 
         data_to_plot = capital_in_positions['Total Capital(ZAR)'].dropna()
-
         fig_portfolio_contributions_ZAR = go.Figure()
         fig_portfolio_contributions_ZAR.add_traces(go.Scatter(x =data_to_plot.index, y= data_to_plot.values ))
         fig_portfolio_contributions_ZAR.update_layout(
@@ -878,6 +877,7 @@ def portfolio_Attribution():
             xaxis_title='Date', 
             yaxis_title='Portfolio Capital Contributions(ZAR)'
         )
+        
         st.plotly_chart(fig_portfolio_contributions_ZAR)
         data_to_plot = pnl_OT.iloc[-1,:]*100
         fig_postions_pnl = px.bar(data_to_plot)
@@ -886,7 +886,8 @@ def portfolio_Attribution():
             xaxis_title='Ticker', 
             yaxis_title='PnL(%)'
         )
-        st.plotly_chart(fig_postions_pnl)
+        with col1:
+            st.plotly_chart(fig_postions_pnl)
         
         data_to_plot = pnl_OT*100
         fig_postions_pnl_over_time = px.line(data_to_plot)
@@ -895,8 +896,17 @@ def portfolio_Attribution():
             xaxis_title='Ticker', 
             yaxis_title='PnL(%)'
         )
-        st.plotly_chart(fig_postions_pnl_over_time)
-        
+        with col1:
+            st.plotly_chart(fig_postions_pnl_over_time)
+            
+        data_to_plot = capital_in_positions['Total Capital(ZAR)'].dropna()
+        fig_portfolio_contributions_ZAR = go.Figure()
+        fig_portfolio_contributions_ZAR.add_traces(go.Scatter(x =data_to_plot.index, y= data_to_plot.values ))
+        fig_portfolio_contributions_ZAR.update_layout(
+            title_text='Portfolio Capital Contributions(ZAR)',
+            xaxis_title='Date', 
+            yaxis_title='Portfolio Capital Contributions(ZAR)'
+        )
        
 with st.sidebar:
     selected = option_menu(
