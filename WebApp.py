@@ -874,7 +874,7 @@ def portfolio_Attribution():
         data_to_plot = pd.DataFrame(pnl_OT.iloc[-1,:]*100)
         first_column_name = data_to_plot.columns[0]
         data_to_plot = data_to_plot.rename(columns={first_column_name: "Return %"})
-        fig_postions_pnl = px.bar(data_to_plot,)
+        fig_postions_pnl = px.bar(data_to_plot,color="Return %")
         fig_postions_pnl.update_layout(
             title_text='Postions PnL ', 
             xaxis_title='Ticker', 
