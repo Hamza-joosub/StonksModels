@@ -875,7 +875,10 @@ def portfolio_Attribution():
         first_column_name = data_to_plot.columns[0]
         data_to_plot = data_to_plot.rename(columns={first_column_name: "Return %"})
         st.dataframe(data_to_plot)
-        fig_postions_pnl = px.bar(data_frame=data_to_plot)
+        fig_postions_pnl = px.bar(data_frame=data_to_plot, 
+                                  x=data_to_plot.index,
+                                  y=data_to_plot["Return %"],
+                                  color="Return %")
         fig_postions_pnl.update_layout(
             title_text='Postions PnL ', 
             xaxis_title='Ticker', 
