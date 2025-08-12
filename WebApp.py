@@ -896,7 +896,7 @@ def portfolio_Attribution():
             xaxis_title='Ticker', 
             yaxis_title='PnL(%)'
         )
-        with col1:
+        with col2:
             st.plotly_chart(fig_postions_pnl_over_time)
             
         data_to_plot = capital_in_positions['Total Capital(ZAR)'].dropna()
