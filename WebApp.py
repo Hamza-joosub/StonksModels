@@ -13,7 +13,6 @@ import requests
 import os
 import datetime 
 import re
-#from stqdm import stqdm
 from sklearn.manifold import TSNE
 import plotly_express as px
 import yfinance as yf
@@ -27,8 +26,6 @@ def Portfolio_Variance_Calculator():
     stock_list_pd = pd.read_pickle("StockList")
     Tickers = st.multiselect("Choose Stocks", options=stock_list_pd["symbol"].to_list())
     weights = []
-    start = "2022-01-01"
-    end = datetime.today().strftime('%Y-%m-%d')
         
     if len(Tickers) > 1:
         st.markdown("## Portfolio Correlation")
