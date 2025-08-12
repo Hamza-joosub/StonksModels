@@ -877,7 +877,8 @@ def portfolio_Attribution():
         fig_postions_pnl.update_layout(
             title_text='Postions PnL ', 
             xaxis_title='Ticker', 
-            yaxis_title='PnL(%)'
+            yaxis_title='PnL(%)',
+            showlegend = False
         )
         with col1:
             st.markdown("### Position Performance Overall")
@@ -889,7 +890,7 @@ def portfolio_Attribution():
             title_text='Postions PnL Over Time ', 
             xaxis_title='Ticker', 
             yaxis_title='PnL(%)',
-            showlegend = False
+            
         )
         with col2:
             st.markdown("### Position Performance Over Time")
