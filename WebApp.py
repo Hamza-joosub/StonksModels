@@ -693,7 +693,7 @@ def portfolio_Attribution():
     # This code snippet is part of a Streamlit application for portfolio attribution.
     transaction_data = st.file_uploader("Upload Easy Equities Transaction")
     start_date = st.date_input("Enter Start Date")
-    start_date = start_date.astype(str)
+    start_date = start_date.strftime('%Y-%m-%d')
     okbutton = st.button("OK")
     if okbutton:
         df = pd.read_excel(transaction_data)
