@@ -23,6 +23,7 @@ OLLAMA_API_URL = "http://127.0.0.1:11434/api/generate"
 API_KEY = "6ulfs8VItWZcKZTMzNJxwmikpQvSF1cI"
 
 def Portfolio_Variance_Calculator():
+    st.markdown("# portfolio Variance Calculator(US Only)")
     stock_list_pd = pd.read_pickle("StockList")
     Tickers = st.multiselect("Choose Stocks", options=stock_list_pd["symbol"].to_list())
     weights = []
@@ -120,6 +121,7 @@ def Portfolio_Variance_Calculator():
             st.dataframe(portfolio_weights)
             
 def dcfModel():
+    st.markdown("# DCF Model(US Only)")
     ticker = st.text_input(label="Enter ticker", placeholder='Enter A Ticker' )
     if ticker == "":
         st.markdown("### Please Enter a Valid Ticker")
@@ -376,7 +378,7 @@ def start_ollama():
         st.success("✅ Ollama is already running.")
 
 def sector_screener():
-    st.markdown("# Sector Screener")
+    st.markdown("# Sector Screener(South Africa)")
     st.markdown("## Sector Metrics")
     df = pd.read_csv("Multiples_Database_JSE.csv")
     df = df.drop(columns = ['Unnamed: 0'])
@@ -504,7 +506,7 @@ def sector_screener():
     st.markdown("-----")    
              
 def Company_overview():
-    
+    st.markdown("# Company Overview(US Only)")
     ticker = st.text_input(label="Enter ticker", placeholder='Enter A Ticker' )
     if ticker == "":
         st.markdown("### Please Enter a Valid Ticker")
