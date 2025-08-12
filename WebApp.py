@@ -846,7 +846,7 @@ def portfolio_Attribution():
         
 
         #st.markdown("# Visualisation")
-
+        col1, col2 = st.columns(2)
         data_to_plot = pnl_OT["Total"].dropna()
         fig_portfolio_performance_percentage = go.Figure()
         fig_portfolio_performance_percentage.add_traces(go.Scatter(x =data_to_plot.index, y= data_to_plot.values*100 ))
@@ -855,7 +855,8 @@ def portfolio_Attribution():
             xaxis_title='Date', 
             yaxis_title='Performance(%)'
         )
-        st.plotly_chart(fig_portfolio_performance_percentage)
+        with col1:
+            st.plotly_chart(fig_portfolio_performance_percentage)
 
         data_to_plot = cumulative_pnl['Total_pnL(ZAR)'].dropna()
         fig_portfolio_performance_ZAR = go.Figure()
@@ -865,7 +866,8 @@ def portfolio_Attribution():
             xaxis_title='Date', 
             yaxis_title='Performance(ZAR)'
         )
-        st.plotly_chart(fig_portfolio_performance_ZAR)
+        with col2:
+            st.plotly_chart(fig_portfolio_performance_ZAR)
 
         data_to_plot = capital_in_positions['Total Capital(ZAR)'].dropna()
 
