@@ -871,7 +871,7 @@ def portfolio_Attribution():
             st.markdown("### Overall Performance(ZAR)")
             st.plotly_chart(fig_portfolio_performance_ZAR)
 
-        data_to_plot = pnl_OT.iloc[-1,:]*100
+        data_to_plot = pd.DataFrame(pnl_OT.iloc[-1,:]*100)
         st.dataframe(data_to_plot)
         fig_postions_pnl = px.bar(data_to_plot,)
         fig_postions_pnl.update_layout(
