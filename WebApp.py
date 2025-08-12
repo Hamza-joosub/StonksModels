@@ -847,6 +847,9 @@ def portfolio_Attribution():
 
         #st.markdown("# Visualisation")
         col1, col2 = st.columns(2)
+        st.markdown("# Overall Performance")
+        
+        
         data_to_plot = pnl_OT["Total"].dropna()
         fig_portfolio_performance_percentage = go.Figure()
         fig_portfolio_performance_percentage.add_traces(go.Scatter(x =data_to_plot.index, y= data_to_plot.values*100 ))
@@ -856,6 +859,7 @@ def portfolio_Attribution():
             yaxis_title='Performance(%)'
         )
         with col1:
+            st.markdown("### Overall Performance(%)")
             st.plotly_chart(fig_portfolio_performance_percentage)
 
         data_to_plot = cumulative_pnl['Total_pnL(ZAR)'].dropna()
@@ -867,18 +871,10 @@ def portfolio_Attribution():
             yaxis_title='Performance(ZAR)'
         )
         with col2:
+            st.markdown("### Overall Performance(ZAR)")
             st.plotly_chart(fig_portfolio_performance_ZAR)
 
-        data_to_plot = capital_in_positions['Total Capital(ZAR)'].dropna()
-        fig_portfolio_contributions_ZAR = go.Figure()
-        fig_portfolio_contributions_ZAR.add_traces(go.Scatter(x =data_to_plot.index, y= data_to_plot.values ))
-        fig_portfolio_contributions_ZAR.update_layout(
-            title_text='Portfolio Capital Contributions(ZAR)',
-            xaxis_title='Date', 
-            yaxis_title='Portfolio Capital Contributions(ZAR)'
-        )
-        
-        st.plotly_chart(fig_portfolio_contributions_ZAR)
+        st.markdown("# Position Performance")
         data_to_plot = pnl_OT.iloc[-1,:]*100
         fig_postions_pnl = px.bar(data_to_plot)
         fig_postions_pnl.update_layout(
@@ -887,6 +883,7 @@ def portfolio_Attribution():
             yaxis_title='PnL(%)'
         )
         with col1:
+            st.markdown("### Position Performance Overall")
             st.plotly_chart(fig_postions_pnl)
         
         data_to_plot = pnl_OT*100
@@ -897,6 +894,7 @@ def portfolio_Attribution():
             yaxis_title='PnL(%)'
         )
         with col2:
+            st.markdown("### Position Performance Over Time")
             st.plotly_chart(fig_postions_pnl_over_time)
             
         data_to_plot = capital_in_positions['Total Capital(ZAR)'].dropna()
