@@ -11,6 +11,8 @@ import subprocess
 import time
 import requests
 import os
+import datetime 
+import re
 #from stqdm import stqdm
 from sklearn.manifold import TSNE
 import plotly_express as px
@@ -685,11 +687,213 @@ def Company_overview():
         for article in stock_news[0:5]:
             st.markdown(f"### {article['title']}")
             st.markdown(article['text'])
-             
+          
+def portfolio_Attribution():
+    st.markdown("# Portfolio Attribution")
+    st.markdown("### EasyEquities Statement")
+    # This code snippet is part of a Streamlit application for portfolio attribution.
+    transaction_data = st.file_uploader("Upload Easy Equities Transaction")
+    df = pd.read_excel(transaction_data)
+    df['Date'] = pd.to_datetime(df['Date'])
+    df = df.set_index('Date')
+    start_date = '2025-07-24'
+    df = df[df.index > start_date] 
+    st.dataframe(df)
+
+    st.markdown("### Withdrawals And Deposit Extraction")
+    balance = df[
+        df['Comment'].str.contains('Realtime Partner Deposit', case=False, na=False) |
+        df['Comment'].str.contains('Withdrawal', case=False, na=False)
+                ]
+    balance = balance[::-1]
+    balance['Balance'] = balance['Debit/Credit'].cumsum()
+    st.dataframe(balance)
+
+    st.markdown("### Admin Fees Extraction")
+    admin_fees = df[
+        df['Comment'].str.contains('Broker Commission', case=False, na=False) |
+        df['Comment'].str.contains('Settlement and administration', case=False, na=False)|
+        df['Comment'].str.contains('Investor protection levy ', case=False, na=False)|
+        df['Comment'].str.contains('Value Added Tax ', case=False, na=False)|
+        df['Comment'].str.contains('Buy Brokerage Fee Discount with Thrive', case=False, na=False)|
+        df['Comment'].str.contains('Cash Management Fee', case=False, na=False)|
+        df['Comment'].str.contains('(VAT)', case=False, na=False)
+        
+    ]
+    admin_fees = admin_fees[::-1]
+    st.dataframe(admin_fees)
+    total_admin_fees = admin_fees['Debit/Credit'].sum()
+
+
+    st.markdown("### Buys and Sells Extraction")
+    transactions = df[df['Comment'].str.contains('Bought', case=False, na=False) | df['Comment'].str.contains('Sold', case=False, na=False)]
+    company_pattern = r'Bought\s+(.+?)\s*[\d@].*'
+    transactions['Company_Name'] = transactions['Comment'].str.extract(company_pattern, flags=re.IGNORECASE)[0]
+    price_pattern = r'@\s*([\d,\.]+)'
+    transactions['Buy_Price'] = transactions['Comment'].str.extract(price_pattern, flags=re.IGNORECASE)[0]
+    transactions['Buy_Price'] = transactions['Buy_Price'].astype(str)
+    transactions['Buy_Price'] = transactions['Buy_Price'].str.strip()
+    transactions['Buy_Price'] = transactions['Buy_Price'].astype(str)
+    transactions['Buy_Price'] = transactions['Buy_Price'].str.replace(r'\s+', '', regex=True)
+    transactions['Buy_Price'] = transactions['Buy_Price'].str.replace(',', '', regex=False)
+    transactions['Buy_Price'] = pd.to_numeric(transactions['Buy_Price'], errors='coerce')
+    transactions['Buy_Price'] = transactions['Buy_Price']/100
+    transactions = transactions[::-1]
+    st.dataframe(transactions)
+
+
+    st.markdown("### Getting Ticker Names")
+    jse_multiples = pd.read_csv('Multiples_Database_JSE.csv')
+    jse_companies = pd.DataFrame(jse_multiples['Company'], )
+    jse_companies['Name'] = jse_multiples['Name']
+    jse_companies = jse_companies.set_index('Company')
+    jse_companies = jse_companies.dropna()
+
+    other_symbols = pd.read_csv('Added_symbols.csv')
+    other_symbols= other_symbols.set_index('Unnamed: 0')
+
+    ticker_column_to_be_added = []
+    for EE_name in transactions['Company_Name'].tolist():
+        if EE_name in jse_companies['Name'].values.tolist():
+            print(f'{EE_name} Found in JSE Database')
+            ticker = (jse_companies['Name'] == EE_name).idxmax()
+            ticker_column_to_be_added.append(ticker)
+            
+        elif EE_name in other_symbols['Name'].values.tolist():
+            print(f'{EE_name} Found in Other Symbols Database')
+            ticker = (other_symbols['Name'] == EE_name).idxmax()
+            ticker_column_to_be_added.append(ticker)
+            
+        else:
+            print("Prompt for new Symbol")
+            ticker = st.text_input(f"Enter Ticker for {EE_name}")
+            other_symbols.loc[ticker] = EE_name
+            print(f'added {EE_name} to new database')
+            ticker_column_to_be_added.append(ticker)
+            #update Database with New Ticker
+            other_symbols.to_csv('Added_symbols.csv')
+    transactions['Ticker'] = ticker_column_to_be_added
+    transactions["Shares"] = -(transactions['Debit/Credit']/transactions['Buy_Price'])
+    transactions.index = pd.to_datetime(transactions.index)
+    transactions.index = transactions.index.date
+    transactions.index = transactions.index.astype(str)
+    buys_start_date = transactions.iloc[-1].name
+    transactions = transactions.reset_index()
+    st.markdown("### transcations With tickers")
+    st.dataframe(transactions)
+
+    st.markdown("### Getting Postions Over Time")
+    bought_tickers = transactions['Ticker'].unique().tolist()
+    all_dates = pd.date_range(start=start_date, end=datetime.date.today(), freq='D')
+    daily_shares_changed = pd.DataFrame({'Date': all_dates})
+    daily_shares_changed
+    daily_shares_changed[transactions["Ticker"].unique().tolist()] = 0.0
+    daily_shares_changed['Date'] = daily_shares_changed['Date'].astype(str)
+    daily_shares_changed = daily_shares_changed.set_index('Date')
+    for transaction in transactions.index:
+        shares_transacted = transactions.iloc[transaction,6]
+        ticker = transactions.iloc[transaction,5]
+        date = transactions.iloc[transaction,0]
+        daily_shares_changed.loc[date, ticker] = shares_transacted
+    #positions = positions.cumsum()
+    daily_shares_changed.index = pd.to_datetime(daily_shares_changed.index)
+    st.markdown("## daily_shares_changed")
+    st.dataframe(daily_shares_changed)
+    st.markdown("## owned Shares Daily")
+    positions_filled_forward = daily_shares_changed.cumsum()
+    st.dataframe(positions_filled_forward)
+
+    st.markdown("## Getting prices")
+    prices = yf.download(tickers=daily_shares_changed.columns.values.tolist(), start = daily_shares_changed.iloc[0].name)['Open']
+    prices = prices/100
+    prices.index = pd.to_datetime(prices.index)
+    prices.index = prices.index.date
+    prices = prices.reindex(all_dates)
+    prices = prices.ffill()
+    prices = prices.reindex(columns=daily_shares_changed.columns)
+    st.dataframe(prices)
+
+    st.markdown("## Postion Values")
+    position_value = prices*positions_filled_forward
+    st.dataframe(position_value)
+
+
+    st.markdown("## PnL's")
+    Daily_Gross_Change_in_Position_Value = position_value.diff(1)
+
+    net_capital_flow = daily_shares_changed*prices
+
+    absolute_pnl = Daily_Gross_Change_in_Position_Value-net_capital_flow
+
+    st.markdown("## cumulative_pnl")
+    cumulative_pnl = absolute_pnl.cumsum()
+    cumulative_pnl['Total_pnL(ZAR)'] = cumulative_pnl.sum(axis=1)
+    cumulative_pnl
+
+    st.markdown("## capital_in_positions")
+    capital_in_positions = net_capital_flow.cumsum()
+    capital_in_positions['Total Capital(ZAR)'] = capital_in_positions.sum(axis=1)
+    capital_in_positions
+
+    st.markdown("## pnl over time")
+    pnl_OT = cumulative_pnl/capital_in_positions
+    pnl_OT["Total"] = cumulative_pnl['Total_pnL(ZAR)']/capital_in_positions['Total Capital(ZAR)']
+    pnl_OT = pnl_OT.drop(columns=['Total Capital(ZAR)', 'Total_pnL(ZAR)'])
+    pnl_OT
+
+    st.markdown("# Visualisation")
+
+    data_to_plot = pnl_OT["Total"].dropna()
+    fig_portfolio_performance_percentage = go.Figure()
+    fig_portfolio_performance_percentage.add_traces(go.Scatter(x =data_to_plot.index, y= data_to_plot.values*100 ))
+    fig_portfolio_performance_percentage.update_layout(
+        title_text='Portfolio Performance(%)',
+        xaxis_title='Date', 
+        yaxis_title='Performance(%)'
+    )
+    st.plotly_chart(fig_portfolio_performance_percentage)
+
+    data_to_plot = cumulative_pnl['Total_pnL(ZAR)'].dropna()
+    fig_portfolio_performance_ZAR = go.Figure()
+    fig_portfolio_performance_ZAR.add_traces(go.Scatter(x =data_to_plot.index, y= data_to_plot.values ))
+    fig_portfolio_performance_ZAR.update_layout(
+        title_text='Portfolio Performance(ZAR)',
+        xaxis_title='Date', 
+        yaxis_title='Performance(ZAR)'
+    )
+    st.plotly_chart(fig_portfolio_performance_ZAR)
+
+    data_to_plot = capital_in_positions['Total Capital(ZAR)'].dropna()
+
+    fig_portfolio_contributions_ZAR = go.Figure()
+    fig_portfolio_contributions_ZAR.add_traces(go.Scatter(x =data_to_plot.index, y= data_to_plot.values ))
+    fig_portfolio_contributions_ZAR.update_layout(
+        title_text='Portfolio Capital Contributions(ZAR)',
+        xaxis_title='Date', 
+        yaxis_title='Portfolio Capital Contributions(ZAR)'
+    )
+    st.plotly_chart(fig_portfolio_contributions_ZAR)
+    data_to_plot = pnl_OT.iloc[-1,:]*100
+    fig_postions_pnl = px.bar(data_to_plot)
+    fig_postions_pnl.update_layout(
+        title_text='Postions PnL ', 
+        xaxis_title='Ticker', 
+        yaxis_title='PnL(%)'
+    )
+    st.plotly_chart(fig_postions_pnl)
+    data_to_plot = pnl_OT*100
+    fig_postions_pnl_over_time = px.line(data_to_plot)
+    fig_postions_pnl_over_time.update_layout(
+        title_text='Postions PnL Over Time ', 
+        xaxis_title='Ticker', 
+        yaxis_title='PnL(%)'
+    )
+    st.plotly_chart(fig_postions_pnl_over_time)
+       
 with st.sidebar:
     selected = option_menu(
         menu_title = 'Models',
-        options = [ 'Company Overview','DCF Model','Sector Screener','Portfolio Variance Calculator' ],
+        options = [ 'Company Overview','DCF Model','Sector Screener','Portfolio Variance Calculator', "Portfolio Attribution" ],
         orientation='vertical',
         icons = ['house', 'buildings', 'lock', 'buildings','buildings' ])
     
@@ -704,3 +908,6 @@ if selected == 'Sector Screener':
     
 if selected == 'Portfolio Variance Calculator':
     Portfolio_Variance_Calculator()   
+    
+if selected == "Portfolio Attribution":
+    portfolio_Attribution()
