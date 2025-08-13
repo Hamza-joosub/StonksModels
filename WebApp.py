@@ -873,7 +873,7 @@ def portfolio_Attribution():
         with metricscol4:
             st.metric(label="Sharpe", value='', delta=f"{round((pnl_OT["Total"].values.tolist()[-1]/pnl_OT["Total"].std()),2)}", width='content')
                   
-        col1, col2 = st.columns(2)
+        
         
         data_to_plot = pnl_OT["Total"].dropna()
         fig_portfolio_performance_percentage = go.Figure()
@@ -885,11 +885,11 @@ def portfolio_Attribution():
             xaxis_title='Date', 
             yaxis_title='Performance(%)'
         )
-        with col1:
-            st.markdown("### Overall Performance(%)")
-            st.plotly_chart(fig_portfolio_performance_percentage)
+        
+        st.markdown("### Overall Performance(%)")
+        st.plotly_chart(fig_portfolio_performance_percentage)
 
-        data_to_plot = cumulative_pnl['Total_pnL(ZAR)'].dropna()
+        """data_to_plot = cumulative_pnl['Total_pnL(ZAR)'].dropna()
         fig_portfolio_performance_ZAR = go.Figure()
         fig_portfolio_performance_ZAR.add_traces(go.Scatter(x =data_to_plot.index, y= data_to_plot.values ))
         
@@ -898,9 +898,11 @@ def portfolio_Attribution():
             xaxis_title='Date', 
             yaxis_title='Performance(ZAR)'
         )
-        with col2:
-            st.markdown("### Overall Performance(ZAR)")
-            st.plotly_chart(fig_portfolio_performance_ZAR)
+        
+        st.markdown("### Overall Performance(ZAR)")
+        st.plotly_chart(fig_portfolio_performance_ZAR)"""
+            
+        col1, col2 = st.columns(2)
 
         data_to_plot = pd.DataFrame(pnl_OT.iloc[-1,:]*100)
         first_column_name = data_to_plot.columns[0]
