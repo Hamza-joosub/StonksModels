@@ -850,11 +850,11 @@ def portfolio_Attribution():
         
         metricscol1, metricscol2, metricscol3, metricscol4 = st.columns(4)
         with metricscol1:
-            st.metric(label="Performance", value=f'', delta=f"{round(pnl_OT["Total"].values.tolist()[-1]*100,2)} %")
+            st.metric(label="Performance", value=f'', delta=f"{round(pnl_OT["Total"].values.tolist()[-1]*100,2)} %", width='content')
         with metricscol2:
-            st.metric(label="Volatility", value='', delta=f"{round(pnl_OT["Total"].std()*100,2)} %", delta_color='inverse')
+            st.metric(label="Volatility", value='', delta=f"{round(pnl_OT["Total"].std()*100,2)} %", delta_color='inverse', width='content')
         with metricscol3:
-            st.metric(label="Sharpe", value='', delta=f"{round((pnl_OT["Total"].values.tolist()[-1]/pnl_OT["Total"].std()),2)}")
+            st.metric(label="Sharpe", value='', delta=f"{round((pnl_OT["Total"].values.tolist()[-1]/pnl_OT["Total"].std()),2)}", width='content')
         
                   
                   
