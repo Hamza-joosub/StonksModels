@@ -846,7 +846,7 @@ def portfolio_Attribution():
 
         #st.markdown("# Visualisation")
         
-        st.metric(label="Perf(%)", value=cumulative_pnl.iloc[-1,0], delta=pnl_OT.iloc[-1,0])
+        st.metric(label="Perf(%)", value=pnl_OT["Total"].values.tolist([-1], delta=pnl_OT.iloc[-1,0])
         col1, col2 = st.columns(2)
         
         data_to_plot = pnl_OT["Total"].dropna()
