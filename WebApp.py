@@ -848,7 +848,7 @@ def portfolio_Attribution():
 
         #st.markdown("# Visualisation")
         
-        st.metric(label="Perf(%)", value=position_value['NAV'].values.tolist()[-1], delta=pnl_OT.iloc[-1,0])
+        st.metric(label="Perf(%)", value=f'R {round(position_value['NAV'].values.tolist()[-1],2)}', delta=round(pnl_OT.iloc[-1,0],2))
                   
                   
         col1, col2 = st.columns(2)
