@@ -817,10 +817,10 @@ def portfolio_Attribution():
         prices = prices.reindex(columns=daily_shares_changed.columns)
         #st.dataframe(prices)
 
-        st.markdown("## Postion Values")
+        #st.markdown("## Postion Values")
         position_value = prices*positions_filled_forward
         position_value['NAV'] = position_value.sum(axis=1)
-        st.dataframe(position_value)
+        #st.dataframe(position_value)
 
 
         #st.markdown("## PnL's")
