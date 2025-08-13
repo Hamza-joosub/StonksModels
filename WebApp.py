@@ -852,7 +852,9 @@ def portfolio_Attribution():
         with metricscol1:
             st.metric(label="Performance", value=f'', delta=f"{round(pnl_OT["Total"].values.tolist()[-1]*100,2)} %")
         with metricscol2:
-            st.metric(label="Volatility", value='', delta=f"{round(pnl_OT["Total"].std()*100,2)} %")
+            st.metric(label="Volatility", value='', delta=f"{round(pnl_OT["Total"].std()*100,2)} %", delta_color='inverse')
+        with metricscol2:
+            st.metric(label="Sharpe", value='', delta=f"{round((pnl_OT["Total"].values.tolist()[-1]*100/pnl_OT["Total"].std()*100),2)} %")
         
                   
                   
