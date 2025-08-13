@@ -848,8 +848,11 @@ def portfolio_Attribution():
 
         #st.markdown("# Visualisation")
         
-        st.metric(label="Performance", value=f'R {round(position_value['NAV'].values.tolist()[-1],2)}', delta=f"{round(pnl_OT["Total"].values.tolist()[-1]*100,2)} %")
-        st.metric(label="Volatility", value='', delta=f"{round(pnl_OT["Total"].std(),2)} %")
+        metricscol1, metricscol2, metricscol3, metricscol4 = st.columns(4)
+        with metricscol1:
+            st.metric(label="Performance", value=f'', delta=f"{round(pnl_OT["Total"].values.tolist()[-1]*100,2)} %")
+        with metricscol2:
+            st.metric(label="Volatility", value='', delta=f"{round(pnl_OT["Total"].std()*100,2)} %")
         
                   
                   
