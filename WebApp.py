@@ -843,7 +843,7 @@ def portfolio_Attribution():
         pnl_OT = cumulative_pnl/capital_in_positions
         pnl_OT["Total"] = cumulative_pnl['Total_pnL(ZAR)']/capital_in_positions['Total Capital(ZAR)']
         pnl_OT = pnl_OT.drop(columns=['Total Capital(ZAR)', 'Total_pnL(ZAR)'])
-        st.markdown(pnl_OT)
+        st.dataframe(pnl_OT)
 
         #st.markdown("# Visualisation")
         
