@@ -819,6 +819,7 @@ def portfolio_Attribution():
         
         st.markdown("## Getting Benchmark prices")
         benchmark_prices = yf.download(tickers=['SPY', 'ETFSWX.JO', ], start = daily_shares_changed.iloc[0].name)[open_or_close]
+        benchmark_prices = benchmark_prices.pct_change()
         benchmark_prices = benchmark_prices/100
         benchmark_prices.index = pd.to_datetime(benchmark_prices.index)
         benchmark_prices.index = benchmark_prices.index.date
@@ -873,6 +874,8 @@ def portfolio_Attribution():
         data_to_plot = pnl_OT["Total"].dropna()
         fig_portfolio_performance_percentage = go.Figure()
         fig_portfolio_performance_percentage.add_traces(go.Scatter(x =data_to_plot.index, y= data_to_plot.values*100 ))
+        fig_portfolio_performance_ZAR.add_traces(go.Scatter(x =benchmark_prices.index, y= benchmark_prices['ETFSWX.JO']*100 ))
+        fig_portfolio_performance_ZAR.add_traces(go.Scatter(x =benchmark_prices.index, y= benchmark_prices['SPY']*100 ))
         fig_portfolio_performance_percentage.update_layout(
             title_text='Portfolio Performance(%)',
             xaxis_title='Date', 
@@ -885,8 +888,7 @@ def portfolio_Attribution():
         data_to_plot = cumulative_pnl['Total_pnL(ZAR)'].dropna()
         fig_portfolio_performance_ZAR = go.Figure()
         fig_portfolio_performance_ZAR.add_traces(go.Scatter(x =data_to_plot.index, y= data_to_plot.values ))
-        fig_portfolio_performance_ZAR.add_traces(go.Scatter(x =benchmark_prices.index, y= benchmark_prices['ETFSWX.JO'] ))
-        fig_portfolio_performance_ZAR.add_traces(go.Scatter(x =benchmark_prices.index, y= benchmark_prices['SPY'] ))
+        
         fig_portfolio_performance_ZAR.update_layout(
             title_text='Portfolio Performance(ZAR)',
             xaxis_title='Date', 
