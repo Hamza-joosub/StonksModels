@@ -828,10 +828,10 @@ def portfolio_Attribution():
         #st.dataframe(benchmark_prices)
         
 
-        #st.markdown("## Postion Values")
+        st.markdown("## Postion Values")
         position_value = prices*positions_filled_forward
         position_value['NAV'] = position_value.sum(axis=1)
-        #st.dataframe(position_value)
+        st.dataframe(position_value)
 
 
         #st.markdown("## PnL's")
@@ -845,7 +845,6 @@ def portfolio_Attribution():
         cumulative_pnl = absolute_pnl.cumsum()
         cumulative_pnl['Total_pnL(ZAR)'] = cumulative_pnl.sum(axis=1)
         
-
         #st.markdown("## capital_in_positions")
         capital_in_positions = net_capital_flow.cumsum()
         capital_in_positions['Total Capital(ZAR)'] = capital_in_positions.sum(axis=1)
@@ -871,9 +870,7 @@ def portfolio_Attribution():
             st.metric(label="Volatility", value='', delta=f"{round(pnl_OT["Total"].std()*100,2)} %", delta_color='inverse', width='content')
             
         with metricscol4:
-            st.metric(label="Sharpe", value='', delta=f"{round((pnl_OT["Total"].values.tolist()[-1]/pnl_OT["Total"].std()),2)}", width='content')
-                  
-        
+            st.metric(label="Sharpe", value='', delta=f"{round((pnl_OT["Total"].values.tolist()[-1]/pnl_OT["Total"].std()),2)}", width='content')          
         
         data_to_plot = pnl_OT["Total"].dropna()
         fig_portfolio_performance_percentage = go.Figure()
