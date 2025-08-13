@@ -823,6 +823,7 @@ def portfolio_Attribution():
         benchmark_prices.index = benchmark_prices.index.date
         benchmark_prices = benchmark_prices.reindex(all_dates)
         benchmark_prices = benchmark_prices.ffill()
+        benchmark_prices = benchmark_prices.pct_change()
         st.dataframe(benchmark_prices)
         
 
@@ -872,8 +873,8 @@ def portfolio_Attribution():
         data_to_plot = pnl_OT["Total"].dropna()
         fig_portfolio_performance_percentage = go.Figure()
         fig_portfolio_performance_percentage.add_traces(go.Scatter(x =data_to_plot.index, y= data_to_plot.values*100 ))
-        fig_portfolio_performance_ZAR.add_traces(go.Scatter(x =benchmark_prices.index, y= benchmark_prices['ETFSWX.JO']*100 ))
-        fig_portfolio_performance_ZAR.add_traces(go.Scatter(x =benchmark_prices.index, y= benchmark_prices['SPY']*100 ))
+        fig_portfolio_performance_percentage.add_traces(go.Scatter(x =benchmark_prices.index, y= benchmark_prices['ETFSWX.JO']*100 ))
+        fig_portfolio_performance_percentage.add_traces(go.Scatter(x =benchmark_prices.index, y= benchmark_prices['SPY']*100 ))
         fig_portfolio_performance_percentage.update_layout(
             title_text='Portfolio Performance(%)',
             xaxis_title='Date', 
