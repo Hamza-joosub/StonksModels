@@ -942,10 +942,13 @@ def portfolio_Attribution():
             xaxis_title='Date', 
             yaxis_title='Portfolio Capital Contributions(ZAR)'
         )
-        data_to_plot = weights.iloc[0,:]
         
+        
+        data_to_plot = weights.iloc[0,:] 
         holdings_by_stock_pie_chart = px.pie(names=data_to_plot.index, values=data_to_plot)
-        st.plotly_chart(holdings_by_stock_pie_chart)
+        with col1:
+            st.markdown("### Stock Weightings")
+            st.plotly_chart(holdings_by_stock_pie_chart)
        
 with st.sidebar:
     selected = option_menu(
