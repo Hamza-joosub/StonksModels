@@ -727,7 +727,7 @@ def portfolio_Attribution():
         admin_fees = admin_fees[::-1]
         #st.dataframe(admin_fees)
         total_admin_fees = admin_fees['Debit/Credit'].sum()
-        st.markdown(f'#### Total Admin Fees: {round(-total_admin_fees,2)}')
+        #st.markdown(f'#### Total Admin Fees: {round(-total_admin_fees,2)}')
 
 
         #st.markdown("### Buys and Sells Extraction")
