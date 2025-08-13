@@ -877,7 +877,7 @@ def portfolio_Attribution():
             st.metric(label="Sharpe", value='', delta=f"{round((pnl_OT["Total"].values.tolist()[-1]/pnl_OT["Total"].std()),2)}", width='content')  
         
         with metricscol5:
-            correlation_with_benchmark = pd.DataFrame([benchmark_prices['SWIX Overall Return'].values.tolist(), pnl_OT["Total"].values.tolist()], columns=['SWIX', "Portfolio"])
+            correlation_with_benchmark = pd.DataFrame(data=[benchmark_prices['SWIX Overall Return'].values.tolist(), pnl_OT["Total"].values.tolist()], columns=['SWIX', "Portfolio"])
             correlation_with_benchmark = correlation_with_benchmark.reset_index()
             st.dataframe(correlation_with_benchmark)
             st.metric(label="Beta", value='', delta=f"{round(4.333,2)}", width='content')        
