@@ -817,14 +817,13 @@ def portfolio_Attribution():
         prices = prices.reindex(columns=daily_shares_changed.columns)
         st.dataframe(prices)
         
-        st.markdown("## Getting Benchmark")
         st.markdown("## Getting Benchmark prices")
         benchmark_prices = yf.download(tickers=['SPY', 'ETFSWX.JO', ], start = daily_shares_changed.iloc[0].name)[open_or_close]
         benchmark_prices = benchmark_prices/100
         benchmark_prices.index = pd.to_datetime(benchmark_prices.index)
         benchmark_prices.index = benchmark_prices.index.date
         benchmark_prices = benchmark_prices.reindex(all_dates)
-        benchmark_prices = prices.ffill()
+        benchmark_prices = benchmark_prices.ffill()
         st.dataframe(benchmark_prices)
         
 
