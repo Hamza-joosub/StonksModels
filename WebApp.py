@@ -873,9 +873,9 @@ def portfolio_Attribution():
         
         data_to_plot = pnl_OT["Total"].dropna()
         fig_portfolio_performance_percentage = go.Figure()
-        fig_portfolio_performance_percentage.add_traces(go.Scatter(x =data_to_plot.index, y= data_to_plot.values*100 ))
-        fig_portfolio_performance_percentage.add_traces(go.Scatter(x =benchmark_prices.index, y= benchmark_prices['SPY Overall Return'] ))
-        fig_portfolio_performance_percentage.add_traces(go.Scatter(x =benchmark_prices.index, y= benchmark_prices['SWIX Overall Return'] ))
+        fig_portfolio_performance_percentage.add_traces(go.Scatter(x =data_to_plot.index, y= data_to_plot.values*100, name="Portolio" ))
+        fig_portfolio_performance_percentage.add_traces(go.Scatter(x =benchmark_prices.index, y= benchmark_prices['SPY Overall Return'], name="S&P" ))
+        fig_portfolio_performance_percentage.add_traces(go.Scatter(x =benchmark_prices.index, y= benchmark_prices['SWIX Overall Return'], name ='SWIX' ))
         fig_portfolio_performance_percentage.update_layout(
             title_text='Portfolio Performance(%)',
             xaxis_title='Date', 
