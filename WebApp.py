@@ -869,7 +869,7 @@ def portfolio_Attribution():
         with metricscol4:
             spy_return = benchmark_prices['SPY Overall Return'].values.tolist()[-1]
             swix_return = benchmark_prices['SWIX Overall Return'].values.tolist()[-1]
-            st.metric(label="Benchmark", value='', delta=f"{round((spy_return*0.5+swix_return*0.5),2)}", width='content')
+            st.metric(label="Alpha(SWIX)", value='', delta=f"{round((pnl_OT["Total"].values.tolist()[-1]*100-swix_return),2)} %", width='content')
                   
         col1, col2 = st.columns(2)
         
