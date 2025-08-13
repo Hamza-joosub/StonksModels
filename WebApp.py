@@ -835,6 +835,7 @@ def portfolio_Attribution():
         
         st.markdown("## Getting Weightings")
         weights = position_value.iloc[:,0:-1]
+        weights = position_value.iloc[:,-1]
         st.dataframe(weights)
 
 
