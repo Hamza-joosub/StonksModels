@@ -877,7 +877,9 @@ def portfolio_Attribution():
             st.metric(label="Sharpe", value='', delta=f"{round((pnl_OT["Total"].values.tolist()[-1]/pnl_OT["Total"].std()),2)}", width='content')  
         
         with metricscol5:
-            st.metric(label="Beta", value='', delta=f"{round(pd.corr(benchmark_prices['SWIX Overall Return'], pnl_OT["Total"]),2)}", width='content')        
+            correlation_with_benchmark = pd.DataFrame(benchmark_prices['SWIX Overall Return'], pnl_OT["Total"])
+            st.dataframe(correlation_with_benchmark)
+            st.metric(label="Beta", value='', delta=f"{round(4.333,2)}", width='content')        
         
         data_to_plot = pnl_OT["Total"].dropna()
         fig_portfolio_performance_percentage = go.Figure()
