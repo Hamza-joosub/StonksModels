@@ -862,7 +862,7 @@ def portfolio_Attribution():
 
         #st.markdown("# Visualisation")
         
-        metricscol1, metricscol2, metricscol3, metricscol4 = st.columns(4)
+        metricscol1, metricscol2, metricscol3, metricscol4,metricscol5  = st.columns(5)
         with metricscol1:
             st.metric(label="Performance", value=f'', delta=f"{round(pnl_OT["Total"].values.tolist()[-1]*100,2)} %", width='content')
         with metricscol2:
@@ -874,7 +874,10 @@ def portfolio_Attribution():
             st.metric(label="Volatility", value='', delta=f"{round(pnl_OT["Total"].std()*100,2)} %", delta_color='inverse', width='content')
             
         with metricscol4:
-            st.metric(label="Sharpe", value='', delta=f"{round((pnl_OT["Total"].values.tolist()[-1]/pnl_OT["Total"].std()),2)}", width='content')          
+            st.metric(label="Sharpe", value='', delta=f"{round((pnl_OT["Total"].values.tolist()[-1]/pnl_OT["Total"].std()),2)}", width='content')  
+        
+        with metricscol5:
+            st.metric(label="Beta", value='', delta=f"{round(pd.corr(benchmark_prices['SWIX Overall Return'], pnl_OT["Total"]),2)}", width='content')        
         
         data_to_plot = pnl_OT["Total"].dropna()
         fig_portfolio_performance_percentage = go.Figure()
