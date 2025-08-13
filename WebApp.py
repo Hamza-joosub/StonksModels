@@ -828,14 +828,14 @@ def portfolio_Attribution():
         #st.dataframe(benchmark_prices)
         
 
-        st.markdown("## Postion Values")
+        #st.markdown("## Postion Values")
         position_value = prices*positions_filled_forward
         position_value['NAV'] = position_value.sum(axis=1)
-        st.dataframe(position_value)
+        #st.dataframe(position_value)
         
-        st.markdown("## Getting Weightings")
+        #st.markdown("## Getting Weightings")
         weights = position_value.iloc[:,0:-1].divide(position_value.iloc[:,-1], axis=0)
-        st.dataframe(weights)
+        #st.dataframe(weights)
 
 
         #st.markdown("## PnL's")
