@@ -823,7 +823,8 @@ def portfolio_Attribution():
         benchmark_prices.index = benchmark_prices.index.date
         benchmark_prices = benchmark_prices.reindex(all_dates)
         benchmark_prices = benchmark_prices.ffill()
-        benchmark_prices = benchmark_prices.pct_change()
+        benchmark_prices['SPY Overall Return'] = benchmark_prices['SPY']/benchmark_prices['SPY'].values.tolist()[0]
+        benchmark_prices['SWIX Overall Return'] = benchmark_prices['ETFSWX.JO']/benchmark_prices['ETFSWX.JO'].values.tolist()[0]
         st.dataframe(benchmark_prices)
         
 
