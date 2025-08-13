@@ -807,7 +807,7 @@ def portfolio_Attribution():
         positions_filled_forward = daily_shares_changed.cumsum()
         #st.dataframe(positions_filled_forward)
 
-        #st.markdown("## Getting prices")
+        st.markdown("## Getting prices")
         prices = yf.download(tickers=daily_shares_changed.columns.values.tolist(), start = daily_shares_changed.iloc[0].name)[open_or_close]
         prices = prices/100
         prices.index = pd.to_datetime(prices.index)
@@ -815,7 +815,18 @@ def portfolio_Attribution():
         prices = prices.reindex(all_dates)
         prices = prices.ffill()
         prices = prices.reindex(columns=daily_shares_changed.columns)
-        #st.dataframe(prices)
+        st.dataframe(prices)
+        
+        st.markdown("## Getting Benchmark")
+        st.markdown("## Getting Benchmark prices")
+        benchmark_prices = yf.download(tickers=['SPY', 'ETFSWX.JO', ], start = daily_shares_changed.iloc[0].name)[open_or_close]
+        benchmark_prices = benchmark_prices/100
+        benchmark_prices.index = pd.to_datetime(benchmark_prices.index)
+        benchmark_prices.index = benchmark_prices.index.date
+        benchmark_prices = benchmark_prices.reindex(all_dates)
+        benchmark_prices = prices.ffill()
+        st.dataframe(benchmark_prices)
+        
 
         #st.markdown("## Postion Values")
         position_value = prices*positions_filled_forward
