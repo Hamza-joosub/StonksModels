@@ -807,7 +807,7 @@ def portfolio_Attribution():
         positions_filled_forward = daily_shares_changed.cumsum()
         #st.dataframe(positions_filled_forward)
 
-        st.markdown("## Getting prices")
+        #st.markdown("## Getting prices")
         prices = yf.download(tickers=daily_shares_changed.columns.values.tolist(), start = daily_shares_changed.iloc[0].name)[open_or_close]
         prices = prices/100
         prices.index = pd.to_datetime(prices.index)
@@ -815,9 +815,9 @@ def portfolio_Attribution():
         prices = prices.reindex(all_dates)
         prices = prices.ffill()
         prices = prices.reindex(columns=daily_shares_changed.columns)
-        st.dataframe(prices)
+        #st.dataframe(prices)
         
-        st.markdown("## Getting Benchmark prices")
+        #st.markdown("## Getting Benchmark prices")
         benchmark_prices = yf.download(tickers=['SPY', 'ETFSWX.JO', ], start = daily_shares_changed.iloc[0].name)[open_or_close]
         benchmark_prices.index = pd.to_datetime(benchmark_prices.index)
         benchmark_prices.index = benchmark_prices.index.date
@@ -825,7 +825,7 @@ def portfolio_Attribution():
         benchmark_prices = benchmark_prices.ffill()
         benchmark_prices['SPY Overall Return'] = ((benchmark_prices['SPY']-benchmark_prices['SPY'].values.tolist()[0])/benchmark_prices['SPY'].values.tolist()[0])*100
         benchmark_prices['SWIX Overall Return'] = ((benchmark_prices['ETFSWX.JO']-benchmark_prices['ETFSWX.JO'].values.tolist()[0])/benchmark_prices['ETFSWX.JO'].values.tolist()[0])*100
-        st.dataframe(benchmark_prices)
+        #st.dataframe(benchmark_prices)
         
 
         #st.markdown("## Postion Values")
@@ -863,13 +863,15 @@ def portfolio_Attribution():
         with metricscol1:
             st.metric(label="Performance", value=f'', delta=f"{round(pnl_OT["Total"].values.tolist()[-1]*100,2)} %", width='content')
         with metricscol2:
-            st.metric(label="Volatility", value='', delta=f"{round(pnl_OT["Total"].std()*100,2)} %", delta_color='inverse', width='content')
-        with metricscol3:
-            st.metric(label="Sharpe", value='', delta=f"{round((pnl_OT["Total"].values.tolist()[-1]/pnl_OT["Total"].std()),2)}", width='content')
-        with metricscol4:
             spy_return = benchmark_prices['SPY Overall Return'].values.tolist()[-1]
             swix_return = benchmark_prices['SWIX Overall Return'].values.tolist()[-1]
             st.metric(label="Alpha(SWIX)", value='', delta=f"{round((pnl_OT["Total"].values.tolist()[-1]*100-swix_return),2)} %", width='content')
+            
+        with metricscol3:
+            st.metric(label="Volatility", value='', delta=f"{round(pnl_OT["Total"].std()*100,2)} %", delta_color='inverse', width='content')
+            
+        with metricscol4:
+            st.metric(label="Sharpe", value='', delta=f"{round((pnl_OT["Total"].values.tolist()[-1]/pnl_OT["Total"].std()),2)}", width='content')
                   
         col1, col2 = st.columns(2)
         
