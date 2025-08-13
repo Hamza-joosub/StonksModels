@@ -840,15 +840,17 @@ def portfolio_Attribution():
         capital_in_positions['Total Capital(ZAR)'] = capital_in_positions.sum(axis=1)
         
 
-        #st.markdown("## pnl over time")
+        st.markdown("## pnl over time")
         pnl_OT = cumulative_pnl/capital_in_positions
         pnl_OT["Total"] = cumulative_pnl['Total_pnL(ZAR)']/capital_in_positions['Total Capital(ZAR)']
         pnl_OT = pnl_OT.drop(columns=['Total Capital(ZAR)', 'Total_pnL(ZAR)'])
-        #st.dataframe(pnl_OT)
+        st.dataframe(pnl_OT)
 
         #st.markdown("# Visualisation")
         
         st.metric(label="Performance", value=f'R {round(position_value['NAV'].values.tolist()[-1],2)}', delta=f"{round(pnl_OT["Total"].values.tolist()[-1]*100,2)} %")
+        
+        
                   
                   
         col1, col2 = st.columns(2)
