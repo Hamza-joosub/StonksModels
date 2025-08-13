@@ -885,6 +885,8 @@ def portfolio_Attribution():
         data_to_plot = cumulative_pnl['Total_pnL(ZAR)'].dropna()
         fig_portfolio_performance_ZAR = go.Figure()
         fig_portfolio_performance_ZAR.add_traces(go.Scatter(x =data_to_plot.index, y= data_to_plot.values ))
+        fig_portfolio_performance_ZAR.add_traces(go.Scatter(x =benchmark_prices.index, y= benchmark_prices['ETFSWX.JO'] ))
+        fig_portfolio_performance_ZAR.add_traces(go.Scatter(x =benchmark_prices.index, y= benchmark_prices['SPY'] ))
         fig_portfolio_performance_ZAR.update_layout(
             title_text='Portfolio Performance(ZAR)',
             xaxis_title='Date', 
