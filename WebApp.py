@@ -879,8 +879,8 @@ def portfolio_Attribution():
         with metricscol5:
             correlation_with_benchmark = pd.DataFrame(benchmark_prices['SWIX Overall Return'].values.tolist(),columns=['SWIX'])
             correlation_with_benchmark['Portfolio'] = pnl_OT["Total"].values.tolist()
-            st.dataframe(correlation_with_benchmark.corr())
-            st.metric(label="Beta", value='', delta=f"{round(4.333,2)}", width='content')        
+            beta = (correlation_with_benchmark.corr()[0,1])
+            st.metric(label="Beta", value='', delta=f"{round(beta,2)}", width='content')        
         
         data_to_plot = pnl_OT["Total"].dropna()
         fig_portfolio_performance_percentage = go.Figure()
