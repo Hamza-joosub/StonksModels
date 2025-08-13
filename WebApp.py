@@ -817,9 +817,10 @@ def portfolio_Attribution():
         prices = prices.reindex(columns=daily_shares_changed.columns)
         #st.dataframe(prices)
 
-        #st.markdown("## Postion Values")
+        st.markdown("## Postion Values")
         position_value = prices*positions_filled_forward
-        #st.dataframe(position_value)
+        position_value['NAV'] = position_value.sum(axis=1)
+        st.dataframe(position_value)
 
 
         #st.markdown("## PnL's")
@@ -839,11 +840,11 @@ def portfolio_Attribution():
         capital_in_positions['Total Capital(ZAR)'] = capital_in_positions.sum(axis=1)
         
 
-        st.markdown("## pnl over time")
+        #st.markdown("## pnl over time")
         pnl_OT = cumulative_pnl/capital_in_positions
         pnl_OT["Total"] = cumulative_pnl['Total_pnL(ZAR)']/capital_in_positions['Total Capital(ZAR)']
         pnl_OT = pnl_OT.drop(columns=['Total Capital(ZAR)', 'Total_pnL(ZAR)'])
-        st.dataframe(pnl_OT)
+        #st.dataframe(pnl_OT)
 
         #st.markdown("# Visualisation")
         
