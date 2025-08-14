@@ -801,10 +801,12 @@ def portfolio_Attribution():
             daily_shares_changed.loc[date, ticker] = shares_transacted
         #positions = positions.cumsum()
         daily_shares_changed.index = pd.to_datetime(daily_shares_changed.index)
+        prices.to_excel(excel_writerpath = 'excel_Data.xlsx', sheet_namestr = 'Daily Transactions')
         #st.markdown("## daily_shares_changed")
         #st.dataframe(daily_shares_changed)
         #st.markdown("## owned Shares Daily")
         positions_filled_forward = daily_shares_changed.cumsum()
+        positions_filled_forward.to_excel(excel_writerpath = 'excel_Data.xlsx', sheet_namestr = 'Postions')
         #st.dataframe(positions_filled_forward)
 
         #st.markdown("## Getting prices")
@@ -815,6 +817,7 @@ def portfolio_Attribution():
         prices = prices.reindex(all_dates)
         prices = prices.ffill()
         prices = prices.reindex(columns=daily_shares_changed.columns)
+        prices.to_excel(excel_writerpath = 'excel_Data.xlsx', sheet_namestr = 'prices')
         #st.dataframe(prices)
         
         #st.markdown("## Getting Benchmark prices")
@@ -825,7 +828,9 @@ def portfolio_Attribution():
         benchmark_prices = benchmark_prices.ffill()
         benchmark_prices['SPY Overall Return'] = ((benchmark_prices['SPY']-benchmark_prices['SPY'].values.tolist()[0])/benchmark_prices['SPY'].values.tolist()[0])*100
         benchmark_prices['SWIX Overall Return'] = ((benchmark_prices['ETFSWX.JO']-benchmark_prices['ETFSWX.JO'].values.tolist()[0])/benchmark_prices['ETFSWX.JO'].values.tolist()[0])*100
+        prices.to_excel(excel_writerpath = 'excel_Data.xlsx', sheet_namestr = 'Benchmark')
         #st.dataframe(benchmark_prices)
+        
         
 
         #st.markdown("## Postion Values")
@@ -861,9 +866,6 @@ def portfolio_Attribution():
         
         #st.dataframe(pnl_OT)
 
-        st.markdown("# pnl_OT")
-        st.dataframe(pnl_OT)
-        st.markdown(pnl_OT["Total"].std())
         
         metricscol1, metricscol2, metricscol3, metricscol4,metricscol5  = st.columns(5)
         with metricscol1:
