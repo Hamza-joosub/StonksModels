@@ -832,6 +832,20 @@ def portfolio_Attribution():
         benchmark_prices.to_excel(excel_writer = 'excel_Data.xlsx', sheet_name = 'Benchmark')
         #st.dataframe(benchmark_prices)
         
+         # Create an in-memory buffer
+        buffer = io.BytesIO()
+
+        # Save the DataFrame to the buffer in Excel format
+        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+            daily_shares_changed.to_excel(writer, index=True, sheet_name='daily_shares_changed')
+            positions_filled_forward.to_excel(writer, index=True, sheet_name='positions_filled_forward')
+            prices.to_excel(writer, index=True, sheet_name='prices')
+            benchmark_prices.to_excel(writer, index=True, sheet_name='benchmark_prices')
+            
+        # Rewind the buffer to the beginning
+        buffer.seek(0)
+        st.download_button("Download Excel WorkSheet", data = buffer, file_name='excel_Data.xlsx')
+        
         
 
         #st.markdown("## Postion Values")
@@ -963,19 +977,7 @@ def portfolio_Attribution():
             st.plotly_chart(holdings_by_stock_pie_chart)
         
         
-        # Create an in-memory buffer
-        buffer = io.BytesIO()
-
-        # Save the DataFrame to the buffer in Excel format
-        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-            daily_shares_changed.to_excel(writer, index=True, sheet_name='daily_shares_changed')
-            positions_filled_forward.to_excel(writer, index=True, sheet_name='positions_filled_forward')
-            prices.to_excel(writer, index=True, sheet_name='prices')
-            benchmark_prices.to_excel(writer, index=True, sheet_name='benchmark_prices')
-            
-        # Rewind the buffer to the beginning
-        buffer.seek(0)
-        st.download_button("Download Excel WorkSheet", data = buffer, file_name='excel_Data.xlsx')
+       
        
 with st.sidebar:
     selected = option_menu(
