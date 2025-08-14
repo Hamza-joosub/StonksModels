@@ -960,6 +960,8 @@ def portfolio_Attribution():
         with col1:
             st.markdown("### Stock Weightings")
             st.plotly_chart(holdings_by_stock_pie_chart)
+        
+        st.download_button("Download Excel WorkSheet", file_name='excel_Data.xlsx')
        
 with st.sidebar:
     selected = option_menu(
