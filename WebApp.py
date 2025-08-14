@@ -861,8 +861,8 @@ def portfolio_Attribution():
         
         #st.dataframe(pnl_OT)
 
-        st.markdown("# absolute_pnl")
-        st.dataframe(absolute_pnl)
+        st.markdown("# pnl_OT")
+        st.dataframe(pnl_OT)
         st.markdown(pnl_OT["Total"].std())
         
         metricscol1, metricscol2, metricscol3, metricscol4,metricscol5  = st.columns(5)
