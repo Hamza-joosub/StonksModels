@@ -968,10 +968,10 @@ def portfolio_Attribution():
 
         # Save the DataFrame to the buffer in Excel format
         with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-            daily_shares_changed.to_excel(writer, index=False, sheet_name='daily_shares_changed')
-            positions_filled_forward.to_excel(writer, index=False, sheet_name='positions_filled_forward')
-            prices.to_excel(writer, index=False, sheet_name='prices')
-            benchmark_prices.to_excel(writer, index=False, sheet_name='benchmark_prices')
+            daily_shares_changed.to_excel(writer, index=True, sheet_name='daily_shares_changed')
+            positions_filled_forward.to_excel(writer, index=True, sheet_name='positions_filled_forward')
+            prices.to_excel(writer, index=True, sheet_name='prices')
+            benchmark_prices.to_excel(writer, index=True, sheet_name='benchmark_prices')
             
         # Rewind the buffer to the beginning
         buffer.seek(0)
