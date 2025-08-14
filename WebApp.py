@@ -828,7 +828,7 @@ def portfolio_Attribution():
         benchmark_prices = benchmark_prices.ffill()
         benchmark_prices['SPY Overall Return'] = ((benchmark_prices['SPY']-benchmark_prices['SPY'].values.tolist()[0])/benchmark_prices['SPY'].values.tolist()[0])*100
         benchmark_prices['SWIX Overall Return'] = ((benchmark_prices['ETFSWX.JO']-benchmark_prices['ETFSWX.JO'].values.tolist()[0])/benchmark_prices['ETFSWX.JO'].values.tolist()[0])*100
-        prices.to_excel(excel_writerpath = 'excel_Data.xlsx', sheet_namestr = 'Benchmark')
+        benchmark_prices.to_excel(excel_writerpath = 'excel_Data.xlsx', sheet_namestr = 'Benchmark')
         #st.dataframe(benchmark_prices)
         
         
