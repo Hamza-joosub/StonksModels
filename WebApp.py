@@ -860,7 +860,8 @@ def portfolio_Attribution():
         pnl_OT = pnl_OT.drop(columns=['Total Capital(ZAR)', 'Total_pnL(ZAR)'])
         #st.dataframe(pnl_OT)
 
-        #st.markdown("# Visualisation")
+        st.markdown("# PNL Column")
+        st.dataframe(pnl_OT["Total"])
         
         metricscol1, metricscol2, metricscol3, metricscol4,metricscol5  = st.columns(5)
         with metricscol1:
