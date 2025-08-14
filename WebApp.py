@@ -801,7 +801,7 @@ def portfolio_Attribution():
             daily_shares_changed.loc[date, ticker] = shares_transacted
         #positions = positions.cumsum()
         daily_shares_changed.index = pd.to_datetime(daily_shares_changed.index)
-        prices.to_excel(excel_writerpath = 'excel_Data.xlsx', sheet_namestr = 'Daily Transactions')
+        daily_shares_changed.to_excel(excel_writerpath = 'excel_Data.xlsx', sheet_namestr = 'Daily Transactions')
         #st.markdown("## daily_shares_changed")
         #st.dataframe(daily_shares_changed)
         #st.markdown("## owned Shares Daily")
