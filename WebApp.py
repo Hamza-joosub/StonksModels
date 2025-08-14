@@ -17,6 +17,7 @@ from sklearn.manifold import TSNE
 import plotly_express as px
 import yfinance as yf
 from streamlit_option_menu import option_menu
+import io
 
 st.set_page_config(layout="wide")
 OLLAMA_API_URL = "http://127.0.0.1:11434/api/generate"  
@@ -961,7 +962,20 @@ def portfolio_Attribution():
             st.markdown("### Stock Weightings")
             st.plotly_chart(holdings_by_stock_pie_chart)
         
-        st.download_button("Download Excel WorkSheet", data = pd.ExcelFile('excel_Data.xlsx'), file_name='excel_Data.xlsx')
+        
+        # Create an in-memory buffer
+        buffer = io.BytesIO()
+
+        # Save the DataFrame to the buffer in Excel format
+        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+            daily_shares_changed.to_excel(writer, index=False, sheet_name='daily_shares_changed')
+            positions_filled_forward.to_excel(writer, index=False, sheet_name='positions_filled_forward')
+            prices.to_excel(writer, index=False, sheet_name='prices')
+            benchmark_prices.to_excel(writer, index=False, sheet_name='benchmark_prices')
+            
+        # Rewind the buffer to the beginning
+        buffer.seek(0)
+        st.download_button("Download Excel WorkSheet", data = buffer, file_name='excel_Data.xlsx')
        
 with st.sidebar:
     selected = option_menu(
